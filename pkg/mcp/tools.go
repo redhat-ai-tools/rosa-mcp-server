@@ -9,23 +9,23 @@ import (
 	"github.com/tiwillia/rosa-mcp-go/pkg/ocm"
 )
 
-// initTools returns the ROSA HCP tools following OpenShift MCP server patterns
+// initTools returns the ROSA HCP tools
 func (s *Server) initTools() []server.ServerTool {
 	return []server.ServerTool{
 		{Tool: mcp.NewTool("whoami",
 			mcp.WithDescription("Get the authenticated account"),
 		), Handler: s.handleWhoami},
-		
+
 		{Tool: mcp.NewTool("get_clusters",
 			mcp.WithDescription("Retrieves the list of clusters"),
 			mcp.WithString("state", mcp.Description("Filter clusters by state (e.g., ready, installing, error)"), mcp.Required()),
 		), Handler: s.handleGetClusters},
-		
+
 		{Tool: mcp.NewTool("get_cluster",
 			mcp.WithDescription("Retrieves the details of the cluster"),
 			mcp.WithString("cluster_id", mcp.Description("Unique cluster identifier"), mcp.Required()),
 		), Handler: s.handleGetCluster},
-		
+
 		{Tool: mcp.NewTool("create_rosa_hcp_cluster",
 			mcp.WithDescription("Provision a new ROSA HCP cluster with required configuration"),
 			mcp.WithString("cluster_name", mcp.Description("Name for the cluster"), mcp.Required()),
@@ -40,13 +40,13 @@ func (s *Server) initTools() []server.ServerTool {
 	}
 }
 
-// registerTools registers all MCP tools with the server following OpenShift MCP patterns
+// registerTools registers all MCP tools with the server
 func (s *Server) registerTools() {
 	// Get profile and tools
 	profile := GetDefaultProfile()
 	tools := profile.GetTools(s)
-	
-	// Register tools using SetTools like OpenShift MCP server
+
+	// Register tools using SetTools
 	s.mcpServer.SetTools(tools...)
 }
 
@@ -146,7 +146,7 @@ func (s *Server) handleGetCluster(ctx context.Context, ctr mcp.CallToolRequest) 
 func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := ctr.GetArguments()
 
-	// Extract required parameters with safe type assertions (following OpenShift MCP pattern)
+	// Extract required parameters with safe type assertions
 	clusterName, ok := args["cluster_name"].(string)
 	if !ok || clusterName == "" {
 		return NewTextResult("", errors.New("missing required argument: cluster_name")), nil
@@ -197,11 +197,11 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		"cluster_name":         clusterName,
 		"aws_account_id":       awsAccountID,
 		"billing_account_id":   billingAccountID,
-		"role_arn":            roleArn,
+		"role_arn":             roleArn,
 		"operator_role_prefix": operatorRolePrefix,
-		"oidc_config_id":      oidcConfigID,
-		"subnet_ids":          subnetIDs,
-		"region":              region,
+		"oidc_config_id":       oidcConfigID,
+		"subnet_ids":           subnetIDs,
+		"region":               region,
 	})
 
 	// Get authenticated OCM client
@@ -229,7 +229,7 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 	return NewTextResult(formattedResponse, nil), nil
 }
 
-// NewTextResult creates a new MCP CallToolResult following OpenShift MCP server patterns
+// NewTextResult creates a new MCP CallToolResult
 func NewTextResult(content string, err error) *mcp.CallToolResult {
 	if err != nil {
 		return &mcp.CallToolResult{

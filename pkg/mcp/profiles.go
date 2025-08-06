@@ -1,3 +1,17 @@
+/*
+profiles implements a basic profile system inspired by the OpenShift MCP server.
+
+The profiles concept allows us to selectively expose different sets of OCM tools
+to avoid overloading an LLM's context window with too many tool options. For the MVP,
+we implement only a basic "all tools enabled" profile, but this foundation will
+allow us to support more complex OCM operations in the future without overwhelming
+the AI assistant with excessive tool choices.
+
+Future profile examples could include:
+- rosa-classic: Legacy classic ROSA clusters
+- rosa-full: All cluster lifecycle operations for all ROSA
+- rosa-admin: Administrative, billing, and SRE operations
+*/
 package mcp
 
 import (

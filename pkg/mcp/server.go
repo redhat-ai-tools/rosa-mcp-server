@@ -32,17 +32,15 @@ func NewServer(cfg *config.Configuration) *Server {
 	)
 
 	s.mcpServer = mcpServer
-	
-	// Register tools using SetTools like OpenShift MCP
 	s.registerTools()
-	
+
 	return s
 }
 
 // Start starts the MCP server
 func (s *Server) Start() error {
 	log.Printf("Starting ROSA MCP Server with transport: %s", s.config.Transport)
-	
+
 	switch s.config.Transport {
 	case "stdio":
 		return s.ServeStdio()
@@ -61,29 +59,29 @@ func (s *Server) ServeStdio() error {
 // ServeSSE serves the MCP server via SSE transport
 func (s *Server) ServeSSE() error {
 	mux := http.NewServeMux()
-	
+
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.config.Port),
 		Handler: mux,
 	}
-	
-	// Create SSE server similar to OpenShift MCP pattern
+
+	// Create SSE server similar
 	sseServer := s.ServeSse(s.config.SSEBaseURL, httpServer)
-	
+
 	// Register SSE endpoints
 	mux.Handle("/sse", sseServer)
 	mux.Handle("/message", sseServer)
-	
+
 	// Health endpoint
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	
+
 	log.Printf("Starting SSE server on port %d", s.config.Port)
 	return httpServer.ListenAndServe()
 }
 
-// ServeSse creates SSE server following OpenShift MCP pattern
+// ServeSse creates SSE server
 func (s *Server) ServeSse(baseURL string, httpServer *http.Server) http.Handler {
 	options := []server.SSEOption{
 		server.WithHTTPServer(httpServer),
