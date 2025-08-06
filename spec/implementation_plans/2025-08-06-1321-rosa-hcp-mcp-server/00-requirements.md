@@ -1,0 +1,1 @@
+@requirements/2025-08-06-1135-rosa-hcp-mcp-server/06-requirements-spec.md

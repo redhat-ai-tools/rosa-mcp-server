@@ -1,0 +1,38 @@
+{
+  "aws": {
+    "account_id": "****",
+    "billing_account_id": "****",
+    "sts": {
+      "auto_mode": true,
+      "oidc_config": {
+        "id": "2kg4slloso10aa8q0jdscjoaeb97bevq"
+      },
+      "operator_role_prefix": "cs-ci-qkhmb-4krd",
+      "role_arn": "arn:aws:iam::****:role/CSE2ETests-HCP-ROSA-Installer-Role"
+    },
+    "subnet_ids": [
+      "subnet-020d9293d85d6c842",
+      "subnet-001dbc2264d3432c2"
+    ]
+  },
+  "billing_model": "marketplace-aws",
+  "ccs": {
+    "enabled": true,
+    "kind": "CCS"
+  },
+  "hypershift": {
+    "enabled": true
+  },
+  "kind": "Cluster",
+  "name": "example-hcp",
+  "product": {
+    "id": "rosa",
+    "kind": "Product"
+  },
+  "region": {
+    "id": "us-east-1",
+    "kind": "CloudRegion"
+  }
+}
+
+
