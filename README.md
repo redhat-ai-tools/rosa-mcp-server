@@ -42,7 +42,7 @@ Flags:
 
 ### Environment Variables
 
-- `OCM_OFFLINE_TOKEN`: Your OCM offline token for authentication
+- `OCM_OFFLINE_TOKEN`: Your OCM offline token for authentication - only used in stdio transport
 
 ### TOML Configuration File
 
@@ -83,6 +83,8 @@ export OCM_OFFLINE_TOKEN="your-ocm-token-here"
 2. Log in with your Red Hat account
 3. Copy the offline token
 
+**If you already have the ocm-cli**: Run `ocm token --refresh` to obtain your offline token.
+
 ### 2. Configure Authentication
 
 **For stdio transport:**
@@ -91,8 +93,8 @@ export OCM_OFFLINE_TOKEN="your-token-here"
 ```
 
 **For SSE transport:**
+Include header in HTTP requests:
 ```bash
-# Include header in HTTP requests
 X-OCM-OFFLINE-TOKEN: your-token-here
 ```
 
@@ -212,9 +214,7 @@ go build ./...
 
 ## Integration with AI Assistants
 
-### Claude Desktop
-
-Add to your `claude_desktop_config.json`:
+Add to your mcpServers list:
 
 ```json
 {
@@ -255,22 +255,3 @@ Common error scenarios:
 - **Permissions**: Insufficient permissions for cluster operations
 - **AWS Resources**: Missing or misconfigured AWS prerequisites
 - **Validation**: Invalid cluster parameters
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## License
-
-This project is licensed under the Apache License 2.0.
-
-## Support
-
-For issues and questions:
-- GitHub Issues: [tiwillia/rosa-mcp-go/issues](https://github.com/tiwillia/rosa-mcp-go/issues)
-- Red Hat Support: Contact Red Hat support for ROSA-related issues
-- OCM Documentation: [console.redhat.com](https://console.redhat.com)
