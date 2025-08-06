@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go/errors"
 )
 
 // Client wraps the OCM SDK client
@@ -44,4 +45,37 @@ func (c *Client) Close() error {
 		return c.connection.Close()
 	}
 	return nil
+}
+
+// OCMError represents an OCM API error with preserved details
+type OCMError struct {
+	Code        string
+	Reason      string
+	OperationID string
+}
+
+func (e *OCMError) Error() string {
+	if e.OperationID != "" {
+		return fmt.Sprintf("OCM API Error [%s]: %s (Operation ID: %s)", e.Code, e.Reason, e.OperationID)
+	}
+	return fmt.Sprintf("OCM API Error [%s]: %s", e.Code, e.Reason)
+}
+
+// HandleOCMError converts an OCM SDK error to our error type
+func HandleOCMError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Check if it's an OCM SDK error with structured details
+	if ocmErr, ok := err.(*errors.Error); ok {
+		return &OCMError{
+			Code:        ocmErr.Code(),
+			Reason:      ocmErr.Reason(),
+			OperationID: ocmErr.OperationID(),
+		}
+	}
+
+	// Return original error if not an OCM error
+	return err
 }
