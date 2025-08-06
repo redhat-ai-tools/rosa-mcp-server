@@ -26,7 +26,17 @@ func (s *Server) initTools() []server.ServerTool {
 			mcp.WithString("cluster_id", mcp.Description("Unique cluster identifier"), mcp.Required()),
 		), Handler: s.handleGetCluster},
 		
-		// create_rosa_hcp_cluster tool will be implemented in Phase 4
+		{Tool: mcp.NewTool("create_rosa_hcp_cluster",
+			mcp.WithDescription("Provision a new ROSA HCP cluster with required configuration"),
+			mcp.WithString("cluster_name", mcp.Description("Name for the cluster"), mcp.Required()),
+			mcp.WithString("aws_account_id", mcp.Description("AWS account ID"), mcp.Required()),
+			mcp.WithString("billing_account_id", mcp.Description("AWS billing account ID"), mcp.Required()),
+			mcp.WithString("role_arn", mcp.Description("IAM installer role ARN"), mcp.Required()),
+			mcp.WithString("operator_role_prefix", mcp.Description("Operator role prefix"), mcp.Required()),
+			mcp.WithString("oidc_config_id", mcp.Description("OIDC configuration ID"), mcp.Required()),
+			mcp.WithArray("subnet_ids", mcp.Description("Array of subnet IDs"), mcp.Required()),
+			mcp.WithString("region", mcp.Description("AWS region"), mcp.DefaultString("us-east-1")),
+		), Handler: s.handleCreateROSAHCPCluster},
 	}
 }
 
@@ -129,6 +139,93 @@ func (s *Server) handleGetCluster(ctx context.Context, ctr mcp.CallToolRequest) 
 
 	// Format response using MCP layer formatter
 	formattedResponse := formatClusterResponse(cluster)
+	return NewTextResult(formattedResponse, nil), nil
+}
+
+// handleCreateROSAHCPCluster handles the create_rosa_hcp_cluster tool
+func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := ctr.GetArguments()
+
+	// Extract required parameters with safe type assertions (following OpenShift MCP pattern)
+	clusterName, ok := args["cluster_name"].(string)
+	if !ok || clusterName == "" {
+		return NewTextResult("", errors.New("missing required argument: cluster_name")), nil
+	}
+
+	awsAccountID, ok := args["aws_account_id"].(string)
+	if !ok || awsAccountID == "" {
+		return NewTextResult("", errors.New("missing required argument: aws_account_id")), nil
+	}
+
+	billingAccountID, ok := args["billing_account_id"].(string)
+	if !ok || billingAccountID == "" {
+		return NewTextResult("", errors.New("missing required argument: billing_account_id")), nil
+	}
+
+	roleArn, ok := args["role_arn"].(string)
+	if !ok || roleArn == "" {
+		return NewTextResult("", errors.New("missing required argument: role_arn")), nil
+	}
+
+	operatorRolePrefix, ok := args["operator_role_prefix"].(string)
+	if !ok || operatorRolePrefix == "" {
+		return NewTextResult("", errors.New("missing required argument: operator_role_prefix")), nil
+	}
+
+	oidcConfigID, ok := args["oidc_config_id"].(string)
+	if !ok || oidcConfigID == "" {
+		return NewTextResult("", errors.New("missing required argument: oidc_config_id")), nil
+	}
+
+	// Handle subnet_ids array parameter
+	subnetIDs := make([]string, 0)
+	if subnetIDsArg, ok := args["subnet_ids"].([]interface{}); ok {
+		for _, subnetID := range subnetIDsArg {
+			if subnetIDStr, ok := subnetID.(string); ok {
+				subnetIDs = append(subnetIDs, subnetIDStr)
+			}
+		}
+	}
+	if len(subnetIDs) == 0 {
+		return NewTextResult("", errors.New("missing required argument: subnet_ids (must be non-empty array)")), nil
+	}
+
+	// Handle region parameter with default using mcp.ParseString
+	region := mcp.ParseString(ctr, "region", "us-east-1")
+
+	s.logToolCall("create_rosa_hcp_cluster", map[string]interface{}{
+		"cluster_name":         clusterName,
+		"aws_account_id":       awsAccountID,
+		"billing_account_id":   billingAccountID,
+		"role_arn":            roleArn,
+		"operator_role_prefix": operatorRolePrefix,
+		"oidc_config_id":      oidcConfigID,
+		"subnet_ids":          subnetIDs,
+		"region":              region,
+	})
+
+	// Get authenticated OCM client
+	client, err := s.getAuthenticatedOCMClient(ctx)
+	if err != nil {
+		return NewTextResult("", errors.New("authentication failed: "+err.Error())), nil
+	}
+	defer client.Close()
+
+	// Call OCM client with ROSA HCP parameters (no validation, pass directly to OCM API)
+	cluster, err := client.CreateROSAHCPCluster(
+		clusterName, awsAccountID, billingAccountID, roleArn,
+		operatorRolePrefix, oidcConfigID, subnetIDs, region,
+	)
+	if err != nil {
+		// Expose OCM API errors directly without modification
+		if ocmErr, ok := err.(*ocm.OCMError); ok {
+			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
+		}
+		return NewTextResult("", errors.New("cluster creation failed: "+err.Error())), nil
+	}
+
+	// Format response using MCP layer formatter
+	formattedResponse := formatClusterCreateResponse(cluster)
 	return NewTextResult(formattedResponse, nil), nil
 }
 
