@@ -1,15 +1,32 @@
 package mcp
 
-// Profile represents a tool profile
-type Profile struct {
-	Name  string
-	Tools []string
+import (
+	"github.com/mark3labs/mcp-go/server"
+)
+
+// Profile represents a tool profile following OpenShift MCP patterns
+type Profile interface {
+	GetName() string
+	GetDescription() string
+	GetTools(s *Server) []server.ServerTool
 }
 
-// GetDefaultProfile returns the default profile with all tools enabled
+// DefaultProfile implements the default profile with all ROSA HCP tools enabled
+type DefaultProfile struct{}
+
+func (p *DefaultProfile) GetName() string {
+	return "default"
+}
+
+func (p *DefaultProfile) GetDescription() string {
+	return "Default profile with all ROSA HCP tools enabled"
+}
+
+func (p *DefaultProfile) GetTools(s *Server) []server.ServerTool {
+	return s.initTools()
+}
+
+// GetDefaultProfile returns the default profile instance
 func GetDefaultProfile() Profile {
-	return Profile{
-		Name:  "default",
-		Tools: []string{"whoami", "get_clusters", "get_cluster", "create_rosa_hcp_cluster"},
-	}
+	return &DefaultProfile{}
 }

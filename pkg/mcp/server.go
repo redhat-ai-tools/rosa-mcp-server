@@ -24,7 +24,7 @@ func NewServer(cfg *config.Configuration) *Server {
 		config: cfg,
 	}
 
-	// Create MCP server with information
+	// Create MCP server following OpenShift MCP patterns
 	mcpServer := server.NewMCPServer(
 		"rosa-mcp-server",
 		"0.1.0",
@@ -33,7 +33,7 @@ func NewServer(cfg *config.Configuration) *Server {
 
 	s.mcpServer = mcpServer
 	
-	// Register tools
+	// Register tools using SetTools like OpenShift MCP
 	s.registerTools()
 	
 	return s
