@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/config"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/mcp"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/version"
+	"github.com/tiwillia/rosa-mcp-go/pkg/config"
+	"github.com/tiwillia/rosa-mcp-go/pkg/mcp"
+	"github.com/tiwillia/rosa-mcp-go/pkg/version"
 )
 
 var (

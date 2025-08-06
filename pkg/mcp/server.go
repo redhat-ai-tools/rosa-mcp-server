@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/config"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/ocm"
+	"github.com/tiwillia/rosa-mcp-go/pkg/config"
+	"github.com/tiwillia/rosa-mcp-go/pkg/ocm"
 )
 
 // Server represents the MCP server

@@ -20,7 +20,7 @@ A Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on
 ### Build from Source
 
 ```bash
-git clone https://github.com/redhat-ai-tools/rosa-mcp-go
+git clone https://github.com/tiwillia/rosa-mcp-go
 cd rosa-mcp-go
 go build -o rosa-mcp-server cmd/rosa-mcp-server/main.go
 ```
@@ -271,6 +271,6 @@ This project is licensed under the Apache License 2.0.
 ## Support
 
 For issues and questions:
-- GitHub Issues: [redhat-ai-tools/rosa-mcp-go/issues](https://github.com/redhat-ai-tools/rosa-mcp-go/issues)
+- GitHub Issues: [tiwillia/rosa-mcp-go/issues](https://github.com/tiwillia/rosa-mcp-go/issues)
 - Red Hat Support: Contact Red Hat support for ROSA-related issues
 - OCM Documentation: [console.redhat.com](https://console.redhat.com)

@@ -1,13 +1,13 @@
 .PHONY: build run clean
 
-# Build the rosa-mcp-go binary
+# Build the rosa-mcp-server binary
 build:
-	go build -o rosa-mcp-go ./cmd/rosa-mcp-server
+	go build -o rosa-mcp-server ./cmd/rosa-mcp-server
 
 # Build and run the server with stdio transport
 run: build
-	./rosa-mcp-go --transport=stdio
+	./rosa-mcp-server --transport=stdio
 
 # Clean build artifacts
 clean:
-	rm -f rosa-mcp-go
+	rm -f rosa-mcp-server

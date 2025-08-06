@@ -6,7 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/redhat-ai-tools/rosa-mcp-go/pkg/ocm"
+	"github.com/tiwillia/rosa-mcp-go/pkg/ocm"
 )
 
 // initTools returns the ROSA HCP tools following OpenShift MCP server patterns
