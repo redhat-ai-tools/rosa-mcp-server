@@ -1,18 +1,22 @@
 package config
 
+import (
+	"github.com/BurntSushi/toml"
+)
+
 // Configuration holds the server configuration
 type Configuration struct {
 	// OCM API base URL (default: https://api.openshift.com)
-	OCMBaseURL string
+	OCMBaseURL string `toml:"ocm_base_url"`
 	
 	// Transport mode selection (stdio/SSE)
-	Transport string
+	Transport string `toml:"transport"`
 	
 	// Optional: Port for SSE/HTTP transport
-	Port int
+	Port int `toml:"port"`
 	
 	// Optional: SSE base URL for public endpoints
-	SSEBaseURL string
+	SSEBaseURL string `toml:"sse_base_url"`
 }
 
 // NewConfiguration creates a new configuration with defaults
@@ -22,4 +26,13 @@ func NewConfiguration() *Configuration {
 		Transport:  "stdio",
 		Port:       8080,
 	}
+}
+
+// LoadFromFile loads configuration from a TOML file
+func LoadFromFile(path string) (*Configuration, error) {
+	config := NewConfiguration()
+	if _, err := toml.DecodeFile(path, config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }
