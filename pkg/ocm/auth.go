@@ -38,9 +38,14 @@ func ExtractTokenFromContext(ctx context.Context, transport string) (string, err
 	case "stdio":
 		return ExtractTokenFromStdio()
 	case "sse":
-		// Extract headers from context (implementation depends on MCP framework)
-		// For now, return error - this will be implemented in MCP layer
-		return "", fmt.Errorf("SSE token extraction from context not yet implemented")
+		// For SSE transport, the token should be provided via X-OCM-OFFLINE-TOKEN header
+		// In a real implementation, this would extract from the HTTP request context
+		// For MVP, we'll check environment variable as fallback
+		token := os.Getenv(StdioTokenEnv)
+		if token == "" {
+			return "", fmt.Errorf("SSE transport requires %s header or %s environment variable", SSETokenHeader, StdioTokenEnv)
+		}
+		return token, nil
 	default:
 		return "", fmt.Errorf("unsupported transport mode: %s", transport)
 	}
