@@ -1,2 +1,11 @@
+# Ignore Claude local settings, but allow commands/agents/etc
 .claude/settings.local.json
+
+# Ignore built binaries
+rosa-mcp-server
+
+# Ignore reference_implementations originally provided to Claude Code in generation
 reference_implementations/
+
+# Ignore project-level mcp json configurations
+.mcp.json
