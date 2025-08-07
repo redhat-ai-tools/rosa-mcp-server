@@ -15,12 +15,19 @@ import (
 type Client struct {
 	connection *sdk.Connection
 	baseURL    string
+	clientID   string
 }
 
 // NewClient creates a new OCM client wrapper
-func NewClient(baseURL string) *Client {
+func NewClient(baseURL, clientID string) *Client {
+	// Default to "cloud-services" if no client ID provided
+	if clientID == "" {
+		clientID = "cloud-services"
+	}
+	
 	return &Client{
-		baseURL: baseURL,
+		baseURL:  baseURL,
+		clientID: clientID,
 	}
 }
 
@@ -37,11 +44,12 @@ func (c *Client) WithToken(token string) (*Client, error) {
 		return nil, fmt.Errorf("failed to build OCM logger: %w", err)
 	}
 
-	// Build OCM SDK connection with offline token and glog logger
+	// Build OCM SDK connection with offline token, client ID, and glog logger
 	// The OCM SDK uses TokenURL for offline token refresh flow
 	builder := sdk.NewConnectionBuilder().
 		URL(c.baseURL).
 		Tokens(token).
+		Client(c.clientID, "").
 		Logger(logger)
 
 	connection, err := builder.Build()
@@ -49,11 +57,12 @@ func (c *Client) WithToken(token string) (*Client, error) {
 		return nil, fmt.Errorf("failed to build OCM connection: %w", err)
 	}
 
-	glog.V(2).Infof("Created OCM client connection to %s", c.baseURL)
+	glog.V(2).Infof("Created OCM client connection to %s with client ID: %s", c.baseURL, c.clientID)
 
 	return &Client{
 		connection: connection,
 		baseURL:    c.baseURL,
+		clientID:   c.clientID,
 	}, nil
 }
 
@@ -167,8 +176,9 @@ func (c *Client) GetCluster(clusterID string) (*clustersmgmt.Cluster, error) {
 // CreateROSAHCPCluster creates a new ROSA HCP cluster
 func (c *Client) CreateROSAHCPCluster(
 	clusterName, awsAccountID, billingAccountID, roleArn,
-	operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn string,
+	operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn, rosaCreatorArn string,
 	subnetIDs []string, availabilityZones []string, region string,
+	multiArchEnabled bool,
 ) (*clustersmgmt.Cluster, error) {
 	if c.connection == nil {
 		return nil, fmt.Errorf("client not authenticated")
@@ -195,6 +205,11 @@ func (c *Client) CreateROSAHCPCluster(
 			SubnetIDs(subnetIDs...)).
 		Nodes(clustersmgmt.NewClusterNodes().
 			AvailabilityZones(availabilityZones...)).
+		MultiAZ(true).
+		MultiArchEnabled(multiArchEnabled).
+		Properties(map[string]string{
+			"rosa_creator_arn": rosaCreatorArn,
+		}).
 		CCS(clustersmgmt.NewCCS().Enabled(true)).
 		Hypershift(clustersmgmt.NewHypershift().Enabled(true)).
 		BillingModel("marketplace-aws")

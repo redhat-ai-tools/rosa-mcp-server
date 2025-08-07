@@ -101,7 +101,7 @@ func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, er
 	}
 
 	// Create OCM client and authenticate
-	baseClient := ocm.NewClient(s.config.OCMBaseURL)
+	baseClient := ocm.NewClient(s.config.OCMBaseURL, s.config.OCMClientID)
 	authenticatedClient, err := baseClient.WithToken(token)
 	if err != nil {
 		return nil, fmt.Errorf("OCM authentication failed: %w", err)

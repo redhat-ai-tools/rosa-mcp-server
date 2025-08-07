@@ -14,11 +14,12 @@ import (
 )
 
 var (
-	configFile   string
-	transport    string
-	ocmBaseURL   string
-	port         int
-	sseBaseURL   string
+	configFile    string
+	transport     string
+	ocmBaseURL    string
+	ocmClientID   string
+	port          int
+	sseBaseURL    string
 )
 
 var rootCmd = &cobra.Command{
@@ -44,6 +45,9 @@ var rootCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("ocm-base-url") {
 			cfg.OCMBaseURL = ocmBaseURL
+		}
+		if cmd.Flags().Changed("ocm-client-id") {
+			cfg.OCMClientID = ocmClientID
 		}
 		if cmd.Flags().Changed("port") {
 			cfg.Port = port
@@ -72,6 +76,7 @@ func init() {
 	rootCmd.Flags().StringVar(&configFile, "config", "", "path to configuration file")
 	rootCmd.Flags().StringVar(&transport, "transport", "stdio", "transport mode (stdio/sse)")
 	rootCmd.Flags().StringVar(&ocmBaseURL, "ocm-base-url", "https://api.openshift.com", "OCM API base URL")
+	rootCmd.Flags().StringVar(&ocmClientID, "ocm-client-id", "cloud-services", "OCM client ID")
 	rootCmd.Flags().IntVar(&port, "port", 8080, "port for SSE transport")
 	rootCmd.Flags().StringVar(&sseBaseURL, "sse-base-url", "", "SSE base URL for public endpoints")
 

@@ -36,9 +36,11 @@ func (s *Server) initTools() []server.ServerTool {
 			mcp.WithString("oidc_config_id", mcp.Description("OIDC configuration ID"), mcp.Required()),
 			mcp.WithString("support_role_arn", mcp.Description("IAM support role ARN"), mcp.Required()),
 			mcp.WithString("worker_role_arn", mcp.Description("IAM worker role ARN"), mcp.Required()),
+			mcp.WithString("rosa_creator_arn", mcp.Description("ROSA creator ARN"), mcp.Required()),
 			mcp.WithArray("subnet_ids", mcp.Description("Array of subnet IDs"), mcp.Required()),
 			mcp.WithArray("availability_zones", mcp.Description("Array of availability zones for the subnets"), mcp.Required()),
 			mcp.WithString("region", mcp.Description("AWS region"), mcp.DefaultString("us-east-1")),
+			mcp.WithBoolean("multi_arch_enabled", mcp.Description("Enable multi-architecture support"), mcp.DefaultBool(false)),
 		), Handler: s.handleCreateROSAHCPCluster},
 	}
 }
@@ -190,6 +192,11 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		return NewTextResult("", errors.New("missing required argument: worker_role_arn")), nil
 	}
 
+	rosaCreatorArn, ok := args["rosa_creator_arn"].(string)
+	if !ok || rosaCreatorArn == "" {
+		return NewTextResult("", errors.New("missing required argument: rosa_creator_arn")), nil
+	}
+
 	// Handle subnet_ids array parameter
 	subnetIDs := make([]string, 0)
 	if subnetIDsArg, ok := args["subnet_ids"].([]interface{}); ok {
@@ -219,6 +226,9 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 	// Handle region parameter with default using mcp.ParseString
 	region := mcp.ParseString(ctr, "region", "us-east-1")
 
+	// Handle optional boolean parameters with defaults
+	multiArchEnabled := mcp.ParseBoolean(ctr, "multi_arch_enabled", false)
+
 	s.logToolCall("create_rosa_hcp_cluster", map[string]interface{}{
 		"cluster_name":         clusterName,
 		"aws_account_id":       awsAccountID,
@@ -228,9 +238,11 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		"oidc_config_id":       oidcConfigID,
 		"support_role_arn":     supportRoleArn,
 		"worker_role_arn":      workerRoleArn,
+		"rosa_creator_arn":     rosaCreatorArn,
 		"subnet_ids":           subnetIDs,
 		"availability_zones":   availabilityZones,
 		"region":               region,
+		"multi_arch_enabled":   multiArchEnabled,
 	})
 
 	// Get authenticated OCM client
@@ -243,8 +255,9 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 	// Call OCM client with ROSA HCP parameters (no validation, pass directly to OCM API)
 	cluster, err := client.CreateROSAHCPCluster(
 		clusterName, awsAccountID, billingAccountID, roleArn,
-		operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn,
+		operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn, rosaCreatorArn,
 		subnetIDs, availabilityZones, region,
+		multiArchEnabled,
 	)
 	if err != nil {
 		// Expose OCM API errors directly without modification
