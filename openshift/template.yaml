@@ -59,7 +59,7 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           imagePullPolicy: Always
           command:
-          - rosa-mcp-server
+          - /app/rosa-mcp-server
           - --transport=sse
           - --host=${HOST}
           - --port=${PORT}
