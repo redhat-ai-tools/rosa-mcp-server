@@ -71,7 +71,9 @@ export OCM_OFFLINE_TOKEN="your-ocm-token-here"
 # Start SSE server
 ./rosa-mcp-server --transport=sse --port=8080
 
-# Server will be available at http://localhost:8080/sse
+# Server will be available at:
+# - SSE stream: http://localhost:8080/sse
+# - MCP messages: http://localhost:8080/message
 # Send X-OCM-OFFLINE-TOKEN header with requests
 ```
 
@@ -244,13 +246,16 @@ Add to your mcpServers list:
 
 ### SSE Integration
 
-For remote integrations, use the SSE endpoint:
+For remote integrations, use the SSE endpoints:
 
 ```bash
-# Server endpoint
-POST http://localhost:8080/sse
+# SSE stream endpoint (for Server-Sent Events)
+GET http://localhost:8080/sse
 
-# Required header
+# MCP message endpoint (for sending JSON-RPC messages)
+POST http://localhost:8080/message
+
+# Required header for both endpoints
 X-OCM-OFFLINE-TOKEN: your-token-here
 ```
 

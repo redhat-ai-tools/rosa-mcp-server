@@ -58,45 +58,28 @@ func (s *Server) ServeStdio() error {
 
 // ServeSSE serves the MCP server via SSE transport
 func (s *Server) ServeSSE() error {
-	mux := http.NewServeMux()
-
-	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.config.Port),
-		Handler: mux,
-	}
-
-	// Create SSE server similar
-	sseServer := s.ServeSse(s.config.SSEBaseURL, httpServer)
-
-	// Register SSE endpoints
-	mux.Handle("/sse", sseServer)
-	mux.Handle("/message", sseServer)
-
-	// Health endpoint
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
 	glog.Infof("Starting SSE server on port %d", s.config.Port)
-	return httpServer.ListenAndServe()
+	
+	// Create SSE server using mcp-go library
+	options := []server.SSEOption{}
+	if s.config.SSEBaseURL != "" {
+		options = append(options, server.WithBaseURL(s.config.SSEBaseURL))
+	}
+	
+	// Add context function to extract headers from HTTP request
+	options = append(options, server.WithSSEContextFunc(s.extractHeadersToContext))
+	
+	sseServer := server.NewSSEServer(s.mcpServer, options...)
+	return sseServer.Start(fmt.Sprintf(":%d", s.config.Port))
 }
 
-// ServeSse creates SSE server
-func (s *Server) ServeSse(baseURL string, httpServer *http.Server) http.Handler {
-	options := []server.SSEOption{
-		server.WithHTTPServer(httpServer),
-	}
-	if baseURL != "" {
-		options = append(options, server.WithBaseURL(baseURL))
-	}
-	return server.NewSSEServer(s.mcpServer, options...)
-}
 
 // getAuthenticatedOCMClient extracts token from context and creates authenticated OCM client
 func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, error) {
 	// Extract token based on transport mode
 	token, err := ocm.ExtractTokenFromContext(ctx, s.config.Transport)
 	if err != nil {
+		glog.Errorf("Failed to extract OCM token: %v", err)
 		return nil, err
 	}
 
@@ -104,10 +87,23 @@ func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, er
 	baseClient := ocm.NewClient(s.config.OCMBaseURL, s.config.OCMClientID)
 	authenticatedClient, err := baseClient.WithToken(token)
 	if err != nil {
-		return nil, fmt.Errorf("OCM authentication failed: %w", err)
+		authErr := fmt.Errorf("OCM authentication failed: %w", err)
+		glog.Errorf("OCM client authentication failed: %v", authErr)
+		return nil, authErr
 	}
 
 	return authenticatedClient, nil
+}
+
+// extractHeadersToContext is an SSE context function that extracts HTTP headers 
+// from the request and stores them in the context for later authentication use
+func (s *Server) extractHeadersToContext(ctx context.Context, r *http.Request) context.Context {
+	glog.V(2).Infof("SSE context function: extracting headers from HTTP request")
+	glog.V(3).Infof("Request headers: %+v", r.Header)
+	
+	// Store the HTTP headers in the context using the same key type that our auth code expects
+	// We need to use the contextKey type defined in our auth package
+	return context.WithValue(ctx, ocm.RequestHeaderKey(), r.Header)
 }
 
 // logToolCall logs tool execution with structured logging
