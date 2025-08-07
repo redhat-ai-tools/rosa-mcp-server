@@ -83,6 +83,8 @@ All responses are human-readable formatted strings (not JSON) designed for AI as
 - The project uses `github.com/mark3labs/mcp-go` v0.37.0+ as the MCP framework
 - OCM integration via `github.com/openshift-online/ocm-sdk-go`
 - Configuration supports CLI flags, environment variables, and TOML files
+- Uses glog for structured logging throughout the OCM SDK integration
+- OCM client supports configurable client ID (defaults to "cloud-services")
 - Only the `pkg/ocm` package currently has test coverage focusing on authentication logic
 - The server binary is built to `rosa-mcp-server` in the project root
 

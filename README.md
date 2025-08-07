@@ -151,8 +151,13 @@ Provision a new ROSA HCP cluster with required AWS configuration.
     "role_arn": {"type": "string", "required": true},
     "operator_role_prefix": {"type": "string", "required": true},
     "oidc_config_id": {"type": "string", "required": true},
+    "support_role_arn": {"type": "string", "required": true},
+    "worker_role_arn": {"type": "string", "required": true},
+    "rosa_creator_arn": {"type": "string", "required": true},
     "subnet_ids": {"type": "array", "required": true},
-    "region": {"type": "string", "default": "us-east-1"}
+    "availability_zones": {"type": "array", "required": true},
+    "region": {"type": "string", "default": "us-east-1"},
+    "multi_arch_enabled": {"type": "boolean", "default": false}
   }
 }
 ```
@@ -162,10 +167,12 @@ Provision a new ROSA HCP cluster with required AWS configuration.
 Before creating clusters, ensure you have:
 
 - **AWS Account**: Account ID and billing account ID
-- **IAM Roles**: Installer, support, worker, and control plane roles configured
+- **IAM Roles**: Installer role ARN, support role ARN, and worker role ARN configured
+- **ROSA Creator**: ARN of the IAM user or role that will create the cluster
 - **OIDC Configuration**: OIDC config ID for secure authentication
-- **Networking**: At least 2 subnet IDs in different availability zones
+- **Networking**: At least 2 subnet IDs in different availability zones with corresponding availability zone names
 - **Operator Roles**: Role prefix for cluster operators
+- **Multi-Architecture Support**: Optional boolean flag for enabling multi-arch nodes (ARM64 + x86_64)
 
 ### Example Cluster Creation
 
@@ -178,8 +185,13 @@ Before creating clusters, ensure you have:
   "role_arn": "arn:aws:iam::123456789012:role/ManagedOpenShift-Installer-Role",
   "operator_role_prefix": "my-cluster-operators",
   "oidc_config_id": "2kg4slloso10aa8q0jdscjoaeb97bevq",
+  "support_role_arn": "arn:aws:iam::123456789012:role/ManagedOpenShift-Support-Role",
+  "worker_role_arn": "arn:aws:iam::123456789012:role/ManagedOpenShift-Worker-Role",
+  "rosa_creator_arn": "arn:aws:iam::123456789012:user/rosa-creator",
   "subnet_ids": ["subnet-12345", "subnet-67890"],
-  "region": "us-east-1"
+  "availability_zones": ["us-east-1a", "us-east-1b"],
+  "region": "us-east-1",
+  "multi_arch_enabled": false
 }
 ```
 
