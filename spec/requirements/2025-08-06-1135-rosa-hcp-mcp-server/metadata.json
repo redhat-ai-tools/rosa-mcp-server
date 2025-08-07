@@ -1,0 +1,13 @@
+{
+  "id": "rosa-hcp-mcp-server",
+  "started": "2025-08-06T11:35:00Z",
+  "lastUpdated": "2025-08-06T11:35:00Z",
+  "status": "active",
+  "phase": "complete",
+  "progress": {
+    "discovery": { "answered": 5, "total": 5 },
+    "detail": { "answered": 5, "total": 5 }
+  },
+  "contextFiles": [],
+  "relatedFeatures": []
+}
