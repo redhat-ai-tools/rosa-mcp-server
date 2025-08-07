@@ -58,7 +58,8 @@ objects:
         - name: rosa-mcp-server
           image: ${IMAGE}:${IMAGE_TAG}
           imagePullPolicy: Always
-          args:
+          command:
+          - rosa-mcp-server
           - --transport=sse
           - --host=${HOST}
           - --port=${PORT}
