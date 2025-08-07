@@ -5,10 +5,10 @@ import (
 
 	"github.com/golang/glog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	accountsmgmt "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	clustersmgmt "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 // Client wraps the OCM SDK client
@@ -28,10 +28,10 @@ func NewClient(baseURL string) *Client {
 func (c *Client) WithToken(token string) (*Client, error) {
 	// Create glog logger for OCM SDK
 	logger, err := logging.NewGlogLoggerBuilder().
-		ErrorV(glog.Level(0)).   // Always log errors
-		WarnV(glog.Level(1)).    // Log warnings at -v=1
-		InfoV(glog.Level(2)).    // Log info at -v=2
-		DebugV(glog.Level(3)).   // Log debug at -v=3
+		ErrorV(glog.Level(0)). // Always log errors
+		WarnV(glog.Level(1)).  // Log warnings at -v=1
+		InfoV(glog.Level(2)).  // Log info at -v=2
+		DebugV(glog.Level(3)). // Log debug at -v=3
 		Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build OCM logger: %w", err)
@@ -124,7 +124,7 @@ func (c *Client) GetClusters(state string) ([]*clustersmgmt.Cluster, error) {
 
 	glog.V(2).Infof("Retrieving clusters with state filter: %s", state)
 	request := c.connection.ClustersMgmt().V1().Clusters().List()
-	
+
 	// Add state filter if provided
 	if state != "" {
 		request = request.Search(fmt.Sprintf("state = '%s'", state))
@@ -167,8 +167,8 @@ func (c *Client) GetCluster(clusterID string) (*clustersmgmt.Cluster, error) {
 // CreateROSAHCPCluster creates a new ROSA HCP cluster
 func (c *Client) CreateROSAHCPCluster(
 	clusterName, awsAccountID, billingAccountID, roleArn,
-	operatorRolePrefix, oidcConfigID string,
-	subnetIDs []string, region string,
+	operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn string,
+	subnetIDs []string, availabilityZones []string, region string,
 ) (*clustersmgmt.Cluster, error) {
 	if c.connection == nil {
 		return nil, fmt.Errorf("client not authenticated")
@@ -188,8 +188,13 @@ func (c *Client) CreateROSAHCPCluster(
 				AutoMode(true).
 				RoleARN(roleArn).
 				OperatorRolePrefix(operatorRolePrefix).
+				SupportRoleARN(supportRoleArn).
+				InstanceIAMRoles(clustersmgmt.NewInstanceIAMRoles().
+					WorkerRoleARN(workerRoleArn)).
 				OidcConfig(clustersmgmt.NewOidcConfig().ID(oidcConfigID))).
 			SubnetIDs(subnetIDs...)).
+		Nodes(clustersmgmt.NewClusterNodes().
+			AvailabilityZones(availabilityZones...)).
 		CCS(clustersmgmt.NewCCS().Enabled(true)).
 		Hypershift(clustersmgmt.NewHypershift().Enabled(true)).
 		BillingModel("marketplace-aws")

@@ -34,7 +34,10 @@ func (s *Server) initTools() []server.ServerTool {
 			mcp.WithString("role_arn", mcp.Description("IAM installer role ARN"), mcp.Required()),
 			mcp.WithString("operator_role_prefix", mcp.Description("Operator role prefix"), mcp.Required()),
 			mcp.WithString("oidc_config_id", mcp.Description("OIDC configuration ID"), mcp.Required()),
+			mcp.WithString("support_role_arn", mcp.Description("IAM support role ARN"), mcp.Required()),
+			mcp.WithString("worker_role_arn", mcp.Description("IAM worker role ARN"), mcp.Required()),
 			mcp.WithArray("subnet_ids", mcp.Description("Array of subnet IDs"), mcp.Required()),
+			mcp.WithArray("availability_zones", mcp.Description("Array of availability zones for the subnets"), mcp.Required()),
 			mcp.WithString("region", mcp.Description("AWS region"), mcp.DefaultString("us-east-1")),
 		), Handler: s.handleCreateROSAHCPCluster},
 	}
@@ -177,6 +180,16 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		return NewTextResult("", errors.New("missing required argument: oidc_config_id")), nil
 	}
 
+	supportRoleArn, ok := args["support_role_arn"].(string)
+	if !ok || supportRoleArn == "" {
+		return NewTextResult("", errors.New("missing required argument: support_role_arn")), nil
+	}
+
+	workerRoleArn, ok := args["worker_role_arn"].(string)
+	if !ok || workerRoleArn == "" {
+		return NewTextResult("", errors.New("missing required argument: worker_role_arn")), nil
+	}
+
 	// Handle subnet_ids array parameter
 	subnetIDs := make([]string, 0)
 	if subnetIDsArg, ok := args["subnet_ids"].([]interface{}); ok {
@@ -190,6 +203,19 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		return NewTextResult("", errors.New("missing required argument: subnet_ids (must be non-empty array)")), nil
 	}
 
+	// Handle availability_zones array parameter
+	availabilityZones := make([]string, 0)
+	if availabilityZonesArg, ok := args["availability_zones"].([]interface{}); ok {
+		for _, az := range availabilityZonesArg {
+			if azStr, ok := az.(string); ok {
+				availabilityZones = append(availabilityZones, azStr)
+			}
+		}
+	}
+	if len(availabilityZones) == 0 {
+		return NewTextResult("", errors.New("missing required argument: availability_zones (must be non-empty array)")), nil
+	}
+
 	// Handle region parameter with default using mcp.ParseString
 	region := mcp.ParseString(ctr, "region", "us-east-1")
 
@@ -200,7 +226,10 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		"role_arn":             roleArn,
 		"operator_role_prefix": operatorRolePrefix,
 		"oidc_config_id":       oidcConfigID,
+		"support_role_arn":     supportRoleArn,
+		"worker_role_arn":      workerRoleArn,
 		"subnet_ids":           subnetIDs,
+		"availability_zones":   availabilityZones,
 		"region":               region,
 	})
 
@@ -214,7 +243,8 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 	// Call OCM client with ROSA HCP parameters (no validation, pass directly to OCM API)
 	cluster, err := client.CreateROSAHCPCluster(
 		clusterName, awsAccountID, billingAccountID, roleArn,
-		operatorRolePrefix, oidcConfigID, subnetIDs, region,
+		operatorRolePrefix, oidcConfigID, supportRoleArn, workerRoleArn,
+		subnetIDs, availabilityZones, region,
 	)
 	if err != nil {
 		// Expose OCM API errors directly without modification
