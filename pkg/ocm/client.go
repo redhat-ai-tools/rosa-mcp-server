@@ -3,8 +3,10 @@ package ocm
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/openshift-online/ocm-sdk-go/logging"
 	accountsmgmt "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	clustersmgmt "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -24,16 +26,30 @@ func NewClient(baseURL string) *Client {
 
 // WithToken creates a new client with authentication token
 func (c *Client) WithToken(token string) (*Client, error) {
-	// Build OCM SDK connection with offline token
+	// Create glog logger for OCM SDK
+	logger, err := logging.NewGlogLoggerBuilder().
+		ErrorV(glog.Level(0)).   // Always log errors
+		WarnV(glog.Level(1)).    // Log warnings at -v=1
+		InfoV(glog.Level(2)).    // Log info at -v=2
+		DebugV(glog.Level(3)).   // Log debug at -v=3
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build OCM logger: %w", err)
+	}
+
+	// Build OCM SDK connection with offline token and glog logger
 	// The OCM SDK uses TokenURL for offline token refresh flow
 	builder := sdk.NewConnectionBuilder().
 		URL(c.baseURL).
-		Tokens(token)
+		Tokens(token).
+		Logger(logger)
 
 	connection, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build OCM connection: %w", err)
 	}
+
+	glog.V(2).Infof("Created OCM client connection to %s", c.baseURL)
 
 	return &Client{
 		connection: connection,
@@ -88,12 +104,16 @@ func (c *Client) GetCurrentAccount() (*accountsmgmt.Account, error) {
 		return nil, fmt.Errorf("client not authenticated")
 	}
 
+	glog.V(2).Info("Retrieving current account information")
 	response, err := c.connection.AccountsMgmt().V1().CurrentAccount().Get().Send()
 	if err != nil {
+		glog.Errorf("Failed to get current account: %v", err)
 		return nil, HandleOCMError(err)
 	}
 
-	return response.Body(), nil
+	account := response.Body()
+	glog.V(2).Infof("Retrieved account: %s (%s)", account.Username(), account.Email())
+	return account, nil
 }
 
 // GetClusters returns a list of clusters filtered by state
@@ -102,6 +122,7 @@ func (c *Client) GetClusters(state string) ([]*clustersmgmt.Cluster, error) {
 		return nil, fmt.Errorf("client not authenticated")
 	}
 
+	glog.V(2).Infof("Retrieving clusters with state filter: %s", state)
 	request := c.connection.ClustersMgmt().V1().Clusters().List()
 	
 	// Add state filter if provided
@@ -111,6 +132,7 @@ func (c *Client) GetClusters(state string) ([]*clustersmgmt.Cluster, error) {
 
 	response, err := request.Send()
 	if err != nil {
+		glog.Errorf("Failed to get clusters: %v", err)
 		return nil, HandleOCMError(err)
 	}
 
@@ -120,6 +142,7 @@ func (c *Client) GetClusters(state string) ([]*clustersmgmt.Cluster, error) {
 		return true
 	})
 
+	glog.V(2).Infof("Retrieved %d clusters", len(clusters))
 	return clusters, nil
 }
 
@@ -129,12 +152,16 @@ func (c *Client) GetCluster(clusterID string) (*clustersmgmt.Cluster, error) {
 		return nil, fmt.Errorf("client not authenticated")
 	}
 
+	glog.V(2).Infof("Retrieving cluster: %s", clusterID)
 	response, err := c.connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
 	if err != nil {
+		glog.Errorf("Failed to get cluster %s: %v", clusterID, err)
 		return nil, HandleOCMError(err)
 	}
 
-	return response.Body(), nil
+	cluster := response.Body()
+	glog.V(2).Infof("Retrieved cluster: %s (state: %s)", cluster.Name(), cluster.State())
+	return cluster, nil
 }
 
 // CreateROSAHCPCluster creates a new ROSA HCP cluster
@@ -146,6 +173,8 @@ func (c *Client) CreateROSAHCPCluster(
 	if c.connection == nil {
 		return nil, fmt.Errorf("client not authenticated")
 	}
+
+	glog.V(2).Infof("Creating ROSA HCP cluster: %s in region %s", clusterName, region)
 
 	// Build ROSA HCP cluster payload following the example structure
 	clusterBuilder := clustersmgmt.NewCluster().
@@ -167,13 +196,17 @@ func (c *Client) CreateROSAHCPCluster(
 
 	cluster, err := clusterBuilder.Build()
 	if err != nil {
+		glog.Errorf("Failed to build cluster payload for %s: %v", clusterName, err)
 		return nil, fmt.Errorf("failed to build cluster payload: %w", err)
 	}
 
 	response, err := c.connection.ClustersMgmt().V1().Clusters().Add().Body(cluster).Send()
 	if err != nil {
+		glog.Errorf("Failed to create cluster %s: %v", clusterName, err)
 		return nil, HandleOCMError(err)
 	}
 
-	return response.Body(), nil
+	createdCluster := response.Body()
+	glog.Infof("Successfully initiated cluster creation: %s (ID: %s)", createdCluster.Name(), createdCluster.ID())
+	return createdCluster, nil
 }

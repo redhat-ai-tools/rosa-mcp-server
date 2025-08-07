@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/tiwillia/rosa-mcp-go/pkg/config"
 	"github.com/tiwillia/rosa-mcp-go/pkg/mcp"
 	"github.com/tiwillia/rosa-mcp-go/pkg/version"
@@ -71,10 +74,16 @@ func init() {
 	rootCmd.Flags().StringVar(&ocmBaseURL, "ocm-base-url", "https://api.openshift.com", "OCM API base URL")
 	rootCmd.Flags().IntVar(&port, "port", 8080, "port for SSE transport")
 	rootCmd.Flags().StringVar(&sseBaseURL, "sse-base-url", "", "SSE base URL for public endpoints")
+
+	// Bridge glog flags with pflag for cobra compatibility
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
 
 func main() {
+	defer glog.Flush()
+
 	if err := rootCmd.Execute(); err != nil {
+		glog.Errorf("Command execution failed: %v", err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

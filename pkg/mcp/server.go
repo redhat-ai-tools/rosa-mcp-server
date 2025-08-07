@@ -3,9 +3,9 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/golang/glog"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/tiwillia/rosa-mcp-go/pkg/config"
 	"github.com/tiwillia/rosa-mcp-go/pkg/ocm"
@@ -39,7 +39,7 @@ func NewServer(cfg *config.Configuration) *Server {
 
 // Start starts the MCP server
 func (s *Server) Start() error {
-	log.Printf("Starting ROSA MCP Server with transport: %s", s.config.Transport)
+	glog.Infof("Starting ROSA MCP Server with transport: %s", s.config.Transport)
 
 	switch s.config.Transport {
 	case "stdio":
@@ -77,7 +77,7 @@ func (s *Server) ServeSSE() error {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	log.Printf("Starting SSE server on port %d", s.config.Port)
+	glog.Infof("Starting SSE server on port %d", s.config.Port)
 	return httpServer.ListenAndServe()
 }
 
@@ -112,7 +112,7 @@ func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, er
 
 // logToolCall logs tool execution with structured logging
 func (s *Server) logToolCall(toolName string, params map[string]interface{}) {
-	log.Printf("Tool called: %s with params: %v", toolName, params)
+	glog.V(2).Infof("Tool called: %s with params: %v", toolName, params)
 }
 
 // convertParamsToMap converts tool parameters to map for logging
