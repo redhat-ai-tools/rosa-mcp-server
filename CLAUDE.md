@@ -19,6 +19,15 @@ make run
 # Clean build artifacts
 make clean
 
+# Container operations
+make container-build      # Build container image with podman
+make container-run        # Build and run container with SSE transport on port 8080
+make container-clean      # Remove container image
+
+# OpenShift deployment
+make deploy              # Deploy to OpenShift using template
+make undeploy           # Remove deployed resources from OpenShift
+
 # Run all tests
 go test ./...
 
@@ -87,6 +96,16 @@ All responses are human-readable formatted strings (not JSON) designed for AI as
 - OCM client supports configurable client ID (defaults to "cloud-services")
 - Only the `pkg/ocm` package currently has test coverage focusing on authentication logic
 - The server binary is built to `rosa-mcp-server` in the project root
+
+## Container and OpenShift Deployment
+
+The project includes containerization support using Red Hat UBI9 images:
+
+- **Containerfile**: Multi-stage build with UBI9 Go toolset for building and UBI9 minimal for runtime
+- **Security**: Runs as non-root user `rosa` with minimal base image
+- **OpenShift Template**: Complete deployment with Deployment, Service, and Route resources
+- **TLS Support**: Automatic certificate management via cert-manager integration
+- **Resource Limits**: Pre-configured CPU/memory limits for production deployment
 
 ## OCM Authentication Setup
 

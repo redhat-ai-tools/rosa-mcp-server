@@ -22,7 +22,29 @@ A Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on
 ```bash
 git clone https://github.com/tiwillia/rosa-mcp-go
 cd rosa-mcp-go
-go build -o rosa-mcp-server cmd/rosa-mcp-server/main.go
+make build
+```
+
+### Container Installation
+
+```bash
+# Build container image
+make container-build
+
+# Run with SSE transport
+make container-run
+```
+
+### OpenShift Deployment
+
+```bash
+# Deploy to OpenShift
+make deploy
+
+# Configure template parameters as needed:
+# - IMAGE: Container image (default: quay.io/redhat-ai-tools/rosa-mcp-server)
+# - MCP_HOST: Hostname for the route
+# - CERT_MANAGER_ISSUER_NAME: TLS certificate issuer
 ```
 
 ## Configuration
@@ -34,7 +56,9 @@ rosa-mcp-server [flags]
 
 Flags:
   --config string         path to configuration file
+  --host string           host for SSE transport (default "0.0.0.0")
   --ocm-base-url string   OCM API base URL (default "https://api.openshift.com")
+  --ocm-client-id string  OCM client ID (default "cloud-services")
   --port int              port for SSE transport (default 8080)
   --sse-base-url string   SSE base URL for public endpoints
   --transport string      transport mode (stdio/sse) (default "stdio")
@@ -212,9 +236,12 @@ Before creating clusters, ensure you have:
 └── README.md               # This file
 ```
 
-### Testing
+### Building and Testing
 
 ```bash
+# Build binary
+make build
+
 # Run all tests
 go test ./...
 
@@ -224,6 +251,15 @@ go build ./...
 # Test server startup
 ./rosa-mcp-server --help
 ./rosa-mcp-server version
+
+# Container operations
+make container-build      # Build container image
+make container-run        # Run containerized server
+make container-clean      # Remove container image
+
+# OpenShift deployment
+make deploy              # Deploy to OpenShift
+make undeploy           # Remove from OpenShift
 ```
 
 ## Integration with AI Assistants
