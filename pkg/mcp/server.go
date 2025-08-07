@@ -58,7 +58,7 @@ func (s *Server) ServeStdio() error {
 
 // ServeSSE serves the MCP server via SSE transport
 func (s *Server) ServeSSE() error {
-	glog.Infof("Starting SSE server on port %d", s.config.Port)
+	glog.Infof("Starting SSE server on %s:%d", s.config.Host, s.config.Port)
 	
 	// Create SSE server using mcp-go library
 	options := []server.SSEOption{}
@@ -70,7 +70,7 @@ func (s *Server) ServeSSE() error {
 	options = append(options, server.WithSSEContextFunc(s.extractHeadersToContext))
 	
 	sseServer := server.NewSSEServer(s.mcpServer, options...)
-	return sseServer.Start(fmt.Sprintf(":%d", s.config.Port))
+	return sseServer.Start(fmt.Sprintf("%s:%d", s.config.Host, s.config.Port))
 }
 
 

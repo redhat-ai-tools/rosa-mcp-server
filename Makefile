@@ -1,4 +1,4 @@
-.PHONY: build run clean container-build container-run container-clean
+.PHONY: build run clean container-build container-run container-clean deploy undeploy
 
 # Build the rosa-mcp-server binary
 build:
@@ -24,3 +24,11 @@ container-run: container-build
 # Clean container image
 container-clean:
 	podman rmi rosa-mcp-server:latest
+
+# Deploy to OpenShift using template
+deploy:
+	oc process -f openshift/template.yaml | oc apply -f -
+
+# Remove deployed resources from OpenShift
+undeploy:
+	oc process -f openshift/template.yaml | oc delete -f -

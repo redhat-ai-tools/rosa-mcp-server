@@ -15,6 +15,9 @@ type Configuration struct {
 	// Transport mode selection (stdio/SSE)
 	Transport string `toml:"transport"`
 	
+	// Optional: Host for SSE/HTTP transport
+	Host string `toml:"host"`
+	
 	// Optional: Port for SSE/HTTP transport
 	Port int `toml:"port"`
 	
@@ -28,6 +31,7 @@ func NewConfiguration() *Configuration {
 		OCMBaseURL:  "https://api.openshift.com",
 		OCMClientID: "cloud-services",
 		Transport:   "stdio",
+		Host:        "0.0.0.0",
 		Port:        8080,
 	}
 }
