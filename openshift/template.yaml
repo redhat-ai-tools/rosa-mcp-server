@@ -30,6 +30,12 @@ parameters:
     value: rosa-mcp-server.example.com
     description: "Hostname for the OpenShift route"
 objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: rosa-mcp-server
+    labels:
+      app: rosa-mcp-server
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -54,11 +60,13 @@ objects:
         labels:
           app: rosa-mcp-server
       spec:
+        serviceAccountName: rosa-mcp-server
         containers:
         - name: rosa-mcp-server
           image: ${IMAGE}:${IMAGE_TAG}
           imagePullPolicy: Always
-          args:
+          command:
+          - /app/rosa-mcp-server
           - --transport=sse
           - --host=${HOST}
           - --port=${PORT}
