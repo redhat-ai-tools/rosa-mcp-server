@@ -64,10 +64,6 @@ Flags:
   --transport string      transport mode (stdio/sse) (default "stdio")
 ```
 
-### Environment Variables
-
-- `OCM_OFFLINE_TOKEN`: Your OCM offline token for authentication - only used in stdio transport
-
 ### TOML Configuration File
 
 ```toml
@@ -81,6 +77,8 @@ sse_base_url = "https://example.com:8080"
 
 ### Stdio Transport (Local)
 
+Stdio transport requires the `OCM_OFFLINE_TOKEN` environment variable for authentication.
+
 ```bash
 # Set your OCM token
 export OCM_OFFLINE_TOKEN="your-ocm-token-here"
@@ -91,6 +89,8 @@ export OCM_OFFLINE_TOKEN="your-ocm-token-here"
 
 ### SSE Transport (Remote)
 
+SSE transport uses header-based authentication with the `X-OCM-OFFLINE-TOKEN` header. No environment variables required.
+
 ```bash
 # Start SSE server
 ./rosa-mcp-server --transport=sse --port=8080
@@ -98,7 +98,7 @@ export OCM_OFFLINE_TOKEN="your-ocm-token-here"
 # Server will be available at:
 # - SSE stream: http://localhost:8080/sse
 # - MCP messages: http://localhost:8080/message
-# Send X-OCM-OFFLINE-TOKEN header with requests
+# Authentication: Send X-OCM-OFFLINE-TOKEN header with requests
 ```
 
 ## Authentication Setup
@@ -264,7 +264,9 @@ make undeploy           # Remove from OpenShift
 
 ## Integration with AI Assistants
 
-Add to your mcpServers list:
+### Stdio Transport Configuration
+
+For local stdio-based integration:
 
 ```json
 {
@@ -280,19 +282,21 @@ Add to your mcpServers list:
 }
 ```
 
-### SSE Integration
+### SSE Transport Configuration
 
-For remote integrations, use the SSE endpoints:
+For remote SSE-based integration (no environment variables needed):
 
-```bash
-# SSE stream endpoint (for Server-Sent Events)
-GET http://localhost:8080/sse
-
-# MCP message endpoint (for sending JSON-RPC messages)
-POST http://localhost:8080/message
-
-# Required header for both endpoints
-X-OCM-OFFLINE-TOKEN: your-token-here
+```json
+{
+  "mcpServers": {
+    "rosa-hcp": {
+      "url": "http://your-server:8080/sse",
+      "headers": {
+        "X-OCM-OFFLINE-TOKEN": "your-token-here"
+      }
+    }
+  }
+}
 ```
 
 ## Error Handling
