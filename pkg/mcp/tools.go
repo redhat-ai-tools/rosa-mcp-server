@@ -14,16 +14,25 @@ func (s *Server) initTools() []server.ServerTool {
 	return []server.ServerTool{
 		{Tool: mcp.NewTool("whoami",
 			mcp.WithDescription("Get the authenticated account"),
+			mcp.WithReadOnlyHintAnnotation(true),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleWhoami},
 
 		{Tool: mcp.NewTool("get_clusters",
 			mcp.WithDescription("Retrieves the list of clusters"),
 			mcp.WithString("state", mcp.Description("Filter clusters by state (e.g., ready, installing, error)"), mcp.Required()),
+			mcp.WithReadOnlyHintAnnotation(true),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleGetClusters},
 
 		{Tool: mcp.NewTool("get_cluster",
 			mcp.WithDescription("Retrieves the details of the cluster"),
 			mcp.WithString("cluster_id", mcp.Description("Unique cluster identifier"), mcp.Required()),
+			mcp.WithReadOnlyHintAnnotation(true),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleGetCluster},
 
 		{Tool: mcp.NewTool("create_rosa_hcp_cluster",
@@ -41,6 +50,9 @@ func (s *Server) initTools() []server.ServerTool {
 			mcp.WithArray("availability_zones", mcp.Description("Array of availability zones for the subnets"), mcp.Required()),
 			mcp.WithString("region", mcp.Description("AWS region"), mcp.DefaultString("us-east-1")),
 			mcp.WithBoolean("multi_arch_enabled", mcp.Description("Enable multi-architecture support"), mcp.DefaultBool(false)),
+			mcp.WithReadOnlyHintAnnotation(false),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleCreateROSAHCPCluster},
 	}
 }
@@ -54,6 +66,7 @@ func (s *Server) registerTools() {
 	// Register tools using SetTools
 	s.mcpServer.SetTools(tools...)
 }
+
 
 // handleWhoami handles the whoami tool
 func (s *Server) handleWhoami(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {

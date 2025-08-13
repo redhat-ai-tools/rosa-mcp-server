@@ -33,6 +33,7 @@ func NewServer(cfg *config.Configuration) *Server {
 
 	s.mcpServer = mcpServer
 	s.registerTools()
+	s.registerPrompts()
 
 	return s
 }
