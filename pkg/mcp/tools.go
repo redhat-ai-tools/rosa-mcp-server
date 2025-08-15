@@ -36,7 +36,9 @@ func (s *Server) initTools() []server.ServerTool {
 		), Handler: s.handleGetCluster},
 
 		{Tool: mcp.NewTool("create_rosa_hcp_cluster",
-			mcp.WithDescription("Provision a new ROSA HCP cluster with required configuration"),
+			mcp.WithDescription(`Provision a new ROSA HCP cluster with basic configuration.
+
+Use the workflow from the get_rosa_hcp_prerequisites_guide tool or prompt to guide a user through completing the necessary pre-requisite steps and collecting the required configuration values.`),
 			mcp.WithString("cluster_name", mcp.Description("Name for the cluster"), mcp.Required()),
 			mcp.WithString("aws_account_id", mcp.Description("AWS account ID"), mcp.Required()),
 			mcp.WithString("billing_account_id", mcp.Description("AWS billing account ID"), mcp.Required()),
@@ -54,6 +56,15 @@ func (s *Server) initTools() []server.ServerTool {
 			mcp.WithDestructiveHintAnnotation(false),
 			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleCreateROSAHCPCluster},
+
+		{Tool: mcp.NewTool("get_rosa_hcp_prerequisites_guide",
+			mcp.WithDescription(`Get the complete workflow prompt for ROSA HCP cluster installation prerequisites and setup.
+
+Use this workflow to guide a user through the complete setup process for creating a ROSA HCP (Red Hat OpenShift Service on AWS with Hosted Control Planes) cluster. using the create_rosa_hcp_cluster tool.`),
+			mcp.WithReadOnlyHintAnnotation(true),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
+		), Handler: s.handleGetROSAHCPPrerequisitesGuide},
 	}
 }
 
@@ -66,7 +77,6 @@ func (s *Server) registerTools() {
 	// Register tools using SetTools
 	s.mcpServer.SetTools(tools...)
 }
-
 
 // handleWhoami handles the whoami tool
 func (s *Server) handleWhoami(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -283,6 +293,14 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 	// Format response using MCP layer formatter
 	formattedResponse := formatClusterCreateResponse(cluster)
 	return NewTextResult(formattedResponse, nil), nil
+}
+
+// handleGetROSAHCPPrerequisitesGuide handles the get_rosa_hcp_prerequisites_guide tool
+func (s *Server) handleGetROSAHCPPrerequisitesGuide(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.logToolCall("get_rosa_hcp_prerequisites_guide", convertParamsToMap())
+
+	// Return the embedded prerequisites guide content directly
+	return NewTextResult(prereqsGuide, nil), nil
 }
 
 // NewTextResult creates a new MCP CallToolResult
