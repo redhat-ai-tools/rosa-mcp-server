@@ -69,8 +69,12 @@ func (s *Server) handleWhoami(ctx context.Context, ctr mcp.CallToolRequest) (*mc
 	// Call OCM client to get current account
 	account, err := client.GetCurrentAccount()
 	if err != nil {
-		// Handle OCM API errors with code and reason exposure
+		// Handle OCM API errors with enhanced token expiration detection
 		if ocmErr, ok := err.(*ocm.OCMError); ok {
+			// Return specific error for token expiration
+			if ocm.IsAccessTokenExpiredError(ocmErr) {
+				return mcp.NewToolResultError("AUTHENTICATION_FAILED: " + ocmErr.Error()), nil
+			}
 			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
 		}
 		return NewTextResult("", errors.New("failed to get account: "+err.Error())), nil
@@ -102,8 +106,12 @@ func (s *Server) handleGetClusters(ctx context.Context, ctr mcp.CallToolRequest)
 	// Call OCM client to get clusters with state filter
 	clusters, err := client.GetClusters(state)
 	if err != nil {
-		// Handle OCM API errors with code and reason exposure
+		// Handle OCM API errors with enhanced token expiration detection
 		if ocmErr, ok := err.(*ocm.OCMError); ok {
+			// Return specific error for token expiration
+			if ocm.IsAccessTokenExpiredError(ocmErr) {
+				return mcp.NewToolResultError("AUTHENTICATION_FAILED: " + ocmErr.Error()), nil
+			}
 			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
 		}
 		return NewTextResult("", errors.New("failed to get clusters: "+err.Error())), nil
@@ -135,8 +143,12 @@ func (s *Server) handleGetCluster(ctx context.Context, ctr mcp.CallToolRequest) 
 	// Call OCM client to get cluster details
 	cluster, err := client.GetCluster(clusterID)
 	if err != nil {
-		// Handle OCM API errors with code and reason exposure
+		// Handle OCM API errors with enhanced token expiration detection
 		if ocmErr, ok := err.(*ocm.OCMError); ok {
+			// Return specific error for token expiration
+			if ocm.IsAccessTokenExpiredError(ocmErr) {
+				return mcp.NewToolResultError("AUTHENTICATION_FAILED: " + ocmErr.Error()), nil
+			}
 			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
 		}
 		return NewTextResult("", errors.New("failed to get cluster: "+err.Error())), nil
@@ -260,8 +272,12 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		multiArchEnabled,
 	)
 	if err != nil {
-		// Expose OCM API errors directly without modification
+		// Handle OCM API errors with enhanced token expiration detection
 		if ocmErr, ok := err.(*ocm.OCMError); ok {
+			// Return specific error for token expiration
+			if ocm.IsAccessTokenExpiredError(ocmErr) {
+				return mcp.NewToolResultError("AUTHENTICATION_FAILED: " + ocmErr.Error()), nil
+			}
 			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
 		}
 		return NewTextResult("", errors.New("cluster creation failed: "+err.Error())), nil
