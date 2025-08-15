@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -31,8 +32,8 @@ func NewClient(baseURL, clientID string) *Client {
 	}
 }
 
-// WithToken creates a new client with authentication token
-func (c *Client) WithToken(token string) (*Client, error) {
+// WithToken creates a new client with authentication token and type
+func (c *Client) WithToken(tokenInfo *TokenInfo) (*Client, error) {
 	// Create glog logger for OCM SDK
 	logger, err := logging.NewGlogLoggerBuilder().
 		ErrorV(glog.Level(0)). // Always log errors
@@ -44,11 +45,10 @@ func (c *Client) WithToken(token string) (*Client, error) {
 		return nil, fmt.Errorf("failed to build OCM logger: %w", err)
 	}
 
-	// Build OCM SDK connection with offline token, client ID, and glog logger
-	// The OCM SDK uses TokenURL for offline token refresh flow
+	// Build OCM SDK connection with token
 	builder := sdk.NewConnectionBuilder().
 		URL(c.baseURL).
-		Tokens(token).
+		Tokens(tokenInfo.Token).
 		Client(c.clientID, "").
 		Logger(logger)
 
@@ -57,7 +57,7 @@ func (c *Client) WithToken(token string) (*Client, error) {
 		return nil, fmt.Errorf("failed to build OCM connection: %w", err)
 	}
 
-	glog.V(2).Infof("Created OCM client connection to %s with client ID: %s", c.baseURL, c.clientID)
+	glog.V(2).Infof("Created OCM client connection to %s with %s token type", c.baseURL, tokenInfo.TokenType)
 
 	return &Client{
 		connection: connection,
@@ -88,7 +88,32 @@ func (e *OCMError) Error() string {
 	return fmt.Sprintf("OCM API Error [%s]: %s", e.Code, e.Reason)
 }
 
-// HandleOCMError converts an OCM SDK error to our error type
+// IsAccessTokenExpiredError checks if the error indicates an expired access token
+// This is conservative - we only flag obvious token expiration cases to avoid false positives
+func IsAccessTokenExpiredError(err error) bool {
+	if ocmErr, ok := err.(*OCMError); ok {
+		// Only check for very specific combinations to avoid false positives
+		reason := strings.ToLower(ocmErr.Reason)
+		
+		// Look for explicit token expiration messages
+		if strings.Contains(reason, "token") && strings.Contains(reason, "expired") {
+			return true
+		}
+		
+		// Look for specific "invalid token" messages (not just "invalid")
+		if strings.Contains(reason, "invalid token") || strings.Contains(reason, "token invalid") {
+			return true
+		}
+		
+		// Check for 401 status combined with token-related reason
+		if strings.Contains(ocmErr.Code, "401") && strings.Contains(reason, "token") {
+			return true
+		}
+	}
+	return false
+}
+
+// HandleOCMError converts an OCM SDK error to our error type with enhanced token handling
 func HandleOCMError(err error) error {
 	if err == nil {
 		return nil
@@ -96,11 +121,18 @@ func HandleOCMError(err error) error {
 
 	// Check if it's an OCM SDK error with structured details
 	if ocmErr, ok := err.(*errors.Error); ok {
-		return &OCMError{
+		enhancedErr := &OCMError{
 			Code:        ocmErr.Code(),
 			Reason:      ocmErr.Reason(),
 			OperationID: ocmErr.OperationID(),
 		}
+		
+		// Add helpful message for expired access tokens
+		if IsAccessTokenExpiredError(enhancedErr) {
+			enhancedErr.Reason += " (Access token may be expired - please provide a fresh token via the Authorization header)"
+		}
+		
+		return enhancedErr
 	}
 
 	// Return original error if not an OCM error

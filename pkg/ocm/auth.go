@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -23,6 +24,9 @@ func RequestHeaderKey() contextKey {
 }
 
 const (
+	// Authorization header for access tokens (standard OAuth2)
+	AuthorizationHeader = "Authorization"
+	
 	// SSE transport header for OCM offline token
 	// NOTE: http.Header keys are stored in canonical format, hence the different casing required here.
 	// The provided X-OCM-OFFLINE-TOKEN header key will be translated to X-Ocm-Offline-Token
@@ -32,19 +36,61 @@ const (
 	StdioTokenEnv = "OCM_OFFLINE_TOKEN"
 )
 
-// ExtractTokenFromSSE extracts OCM offline token from X-OCM-OFFLINE-TOKEN header
-func ExtractTokenFromSSE(headers map[string]string) (string, error) {
-	glog.V(3).Infof("SSE headers received: %+v", headers)
+// TokenInfo represents extracted token information
+type TokenInfo struct {
+	Token     string
+	TokenType string // "access" or "offline"
+}
+
+// ExtractBearerToken extracts access token from Authorization header
+func ExtractBearerToken(headers map[string]string) (string, error) {
+	authHeader, exists := headers[AuthorizationHeader]
+	if !exists || authHeader == "" {
+		return "", fmt.Errorf("missing or empty %s header", AuthorizationHeader)
+	}
 	
-	// Try exact header name first
+	// Check for "Bearer " prefix (case-insensitive)
+	const bearerPrefix = "Bearer "
+	if len(authHeader) <= len(bearerPrefix) {
+		return "", fmt.Errorf("invalid Authorization header format")
+	}
+	
+	if !strings.EqualFold(authHeader[:len(bearerPrefix)], bearerPrefix) {
+		return "", fmt.Errorf("Authorization header must use Bearer scheme")
+	}
+	
+	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
+	if token == "" {
+		return "", fmt.Errorf("empty Bearer token")
+	}
+	
+	return token, nil
+}
+
+// ExtractTokenInfoFromSSE extracts token info from SSE headers, preferring access tokens
+func ExtractTokenInfoFromSSE(headers map[string]string) (*TokenInfo, error) {
+	// Log only header keys for security (never log header values which may contain tokens)
+	headerKeys := make([]string, 0, len(headers))
+	for key := range headers {
+		headerKeys = append(headerKeys, key)
+	}
+	glog.V(3).Infof("SSE headers received (keys only): %v", headerKeys)
+	
+	// Try Authorization header first (access token)
+	if token, err := ExtractBearerToken(headers); err == nil {
+		glog.V(3).Info("Found access token in Authorization header")
+		return &TokenInfo{Token: token, TokenType: "access"}, nil
+	}
+	
+	// Fallback to offline token header
 	token, exists := headers[SSETokenHeader]
 	if exists && token != "" {
-		glog.V(3).Infof("Found OCM token in header %s", SSETokenHeader)
-		return token, nil
+		glog.V(3).Infof("Found offline token in header %s", SSETokenHeader)
+		return &TokenInfo{Token: token, TokenType: "offline"}, nil
 	}
 
-	glog.Warningf("Missing or empty %s header in SSE request. Available headers: %+v", SSETokenHeader, headers)
-	return "", fmt.Errorf("missing or empty %s header", SSETokenHeader)
+	glog.Warningf("No valid tokens found in SSE headers. Available header keys: %v", headerKeys)
+	return nil, fmt.Errorf("missing valid authentication token")
 }
 
 // ExtractTokenFromStdio extracts OCM offline token from OCM_OFFLINE_TOKEN environment variable
@@ -56,40 +102,45 @@ func ExtractTokenFromStdio() (string, error) {
 	return token, nil
 }
 
-// ExtractTokenFromContext extracts OCM offline token from context based on transport mode
-func ExtractTokenFromContext(ctx context.Context, transport string) (string, error) {
+// ExtractTokenInfoFromContext extracts token info from context based on transport mode
+func ExtractTokenInfoFromContext(ctx context.Context, transport string) (*TokenInfo, error) {
 	glog.V(2).Infof("Extracting token for transport mode: %s", transport)
 	
 	switch transport {
 	case "stdio":
-		return ExtractTokenFromStdio()
+		// Stdio only supports offline tokens via environment variable
+		token, err := ExtractTokenFromStdio()
+		if err != nil {
+			return nil, err
+		}
+		return &TokenInfo{Token: token, TokenType: "offline"}, nil
+		
 	case "sse":
-		// For SSE transport, extract token from HTTP headers in the context
+		// For SSE transport, extract from HTTP headers
 		headers := extractHeadersFromContext(ctx)
 		if headers != nil {
-			glog.V(2).Infof("Headers found in context for SSE transport")
-			if token, err := ExtractTokenFromSSE(headers); err == nil {
-				return token, nil
+			if tokenInfo, err := ExtractTokenInfoFromSSE(headers); err == nil {
+				return tokenInfo, nil
 			} else {
 				glog.Warningf("Failed to extract token from SSE headers: %v", err)
 			}
-		} else {
-			glog.Warningf("No headers found in context for SSE transport")
 		}
 
-		// Fallback to environment variable for MVP compatibility
+		// Fallback to environment variable
 		token := os.Getenv(StdioTokenEnv)
 		if token == "" {
-			err := fmt.Errorf("SSE transport requires %s header or %s environment variable", SSETokenHeader, StdioTokenEnv)
+			err := fmt.Errorf("SSE transport requires %s header or %s environment variable", 
+				AuthorizationHeader, StdioTokenEnv)
 			glog.Errorf("Authentication failed: %v", err)
-			return "", err
+			return nil, err
 		}
 		glog.V(2).Infof("Using fallback environment variable for SSE transport")
-		return token, nil
+		return &TokenInfo{Token: token, TokenType: "offline"}, nil
+		
 	default:
 		err := fmt.Errorf("unsupported transport mode: %s", transport)
 		glog.Errorf("Authentication failed: %v", err)
-		return "", err
+		return nil, err
 	}
 }
 
