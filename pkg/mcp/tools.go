@@ -91,12 +91,8 @@ func (s *Server) handleWhoami(ctx context.Context, ctr mcp.CallToolRequest) (*mc
 
 	// Call OCM client to get current account
 	account, err := client.GetCurrentAccount()
-	if err != nil {
-		// Handle OCM API errors with code and reason exposure
-		if ocmErr, ok := err.(*ocm.OCMError); ok {
-			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
-		}
-		return NewTextResult("", errors.New("failed to get account: "+err.Error())), nil
+	if errorResult := handleOCMError(err, "failed to get account"); errorResult != nil {
+		return errorResult, nil
 	}
 
 	// Format response using MCP layer formatter
@@ -124,12 +120,8 @@ func (s *Server) handleGetClusters(ctx context.Context, ctr mcp.CallToolRequest)
 
 	// Call OCM client to get clusters with state filter
 	clusters, err := client.GetClusters(state)
-	if err != nil {
-		// Handle OCM API errors with code and reason exposure
-		if ocmErr, ok := err.(*ocm.OCMError); ok {
-			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
-		}
-		return NewTextResult("", errors.New("failed to get clusters: "+err.Error())), nil
+	if errorResult := handleOCMError(err, "failed to get clusters"); errorResult != nil {
+		return errorResult, nil
 	}
 
 	// Format response using MCP layer formatter
@@ -157,12 +149,8 @@ func (s *Server) handleGetCluster(ctx context.Context, ctr mcp.CallToolRequest) 
 
 	// Call OCM client to get cluster details
 	cluster, err := client.GetCluster(clusterID)
-	if err != nil {
-		// Handle OCM API errors with code and reason exposure
-		if ocmErr, ok := err.(*ocm.OCMError); ok {
-			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
-		}
-		return NewTextResult("", errors.New("failed to get cluster: "+err.Error())), nil
+	if errorResult := handleOCMError(err, "failed to get cluster"); errorResult != nil {
+		return errorResult, nil
 	}
 
 	// Format response using MCP layer formatter
@@ -282,12 +270,8 @@ func (s *Server) handleCreateROSAHCPCluster(ctx context.Context, ctr mcp.CallToo
 		subnetIDs, availabilityZones, region,
 		multiArchEnabled,
 	)
-	if err != nil {
-		// Expose OCM API errors directly without modification
-		if ocmErr, ok := err.(*ocm.OCMError); ok {
-			return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason)), nil
-		}
-		return NewTextResult("", errors.New("cluster creation failed: "+err.Error())), nil
+	if errorResult := handleOCMError(err, "cluster creation"); errorResult != nil {
+		return errorResult, nil
 	}
 
 	// Format response using MCP layer formatter
@@ -324,4 +308,22 @@ func NewTextResult(content string, err error) *mcp.CallToolResult {
 			},
 		},
 	}
+}
+
+// handleOCMError processes OCM API errors with enhanced token expiration detection
+// Returns an appropriate MCP CallToolResult for the error, or nil if no error
+func handleOCMError(err error, operation string) *mcp.CallToolResult {
+	if err == nil {
+		return nil
+	}
+
+	// Handle OCM API errors with enhanced token expiration detection
+	if ocmErr, ok := err.(*ocm.OCMError); ok {
+		// Return specific error for token expiration
+		if ocm.IsAccessTokenExpiredError(ocmErr) {
+			return mcp.NewToolResultError("AUTHENTICATION_FAILED: " + ocmErr.Error())
+		}
+		return NewTextResult("", errors.New("OCM API Error ["+ocmErr.Code+"]: "+ocmErr.Reason))
+	}
+	return NewTextResult("", errors.New(operation+" failed: "+err.Error()))
 }

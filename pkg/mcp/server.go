@@ -77,8 +77,8 @@ func (s *Server) ServeSSE() error {
 
 // getAuthenticatedOCMClient extracts token from context and creates authenticated OCM client
 func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, error) {
-	// Extract token based on transport mode
-	token, err := ocm.ExtractTokenFromContext(ctx, s.config.Transport)
+	// Extract token info from context
+	tokenInfo, err := ocm.ExtractTokenInfoFromContext(ctx, s.config.Transport)
 	if err != nil {
 		glog.Errorf("Failed to extract OCM token: %v", err)
 		return nil, err
@@ -86,7 +86,7 @@ func (s *Server) getAuthenticatedOCMClient(ctx context.Context) (*ocm.Client, er
 
 	// Create OCM client and authenticate
 	baseClient := ocm.NewClient(s.config.OCMBaseURL, s.config.OCMClientID)
-	authenticatedClient, err := baseClient.WithToken(token)
+	authenticatedClient, err := baseClient.WithToken(tokenInfo)
 	if err != nil {
 		authErr := fmt.Errorf("OCM authentication failed: %w", err)
 		glog.Errorf("OCM client authentication failed: %v", authErr)
