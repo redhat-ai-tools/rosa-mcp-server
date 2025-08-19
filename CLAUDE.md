@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on AWS using Hosted Control Planes) written in Go. It enables AI assistants to integrate with Red Hat Managed OpenShift services through 5 core tools: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, and `get_rosa_hcp_prerequisites_guide`.
+This is a Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on AWS using Hosted Control Planes) written in Go. It enables AI assistants to integrate with Red Hat Managed OpenShift services through 6 core tools: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, `get_rosa_hcp_prerequisites_guide`, and `setup_htpasswd_identity_provider`.
 
 ## Build and Development Commands
 
@@ -50,13 +50,18 @@ The codebase follows the Model Context Protocol (MCP) server pattern with clear 
 
 **MCP Layer (`pkg/mcp/`):**
 - `server.go` - Main MCP server implementation, handles transport (stdio/SSE) and authentication
-- `tools.go` - Implements all 4 ROSA HCP tools with parameter validation and OCM client interaction
+- `tools.go` - Implements all 6 ROSA HCP tools with parameter validation and OCM client interaction
 - `formatters.go` - Human-readable response formatters (not JSON) for AI assistant consumption
 - `profiles.go` - Tool profile system for selective tool exposure (currently default profile only)
 
 **OCM Integration (`pkg/ocm/`):**
 - `client.go` - OCM SDK wrapper with authenticated connections and structured error handling
 - `auth.go` - Transport-agnostic token extraction (SSE headers vs stdio environment variables)
+- `htpasswd.go` - HTPasswd identity provider setup methods using ROSA CLI patterns
+
+**ROSA CLI Integration (`pkg/htpasswd/`):**
+- `validation.go` - Username, password, and IDP name validation copied from ROSA CLI
+- `validation_test.go` - Comprehensive test suite for all validation functions
 
 **Configuration (`pkg/config/`):**
 - `config.go` - TOML configuration file support with CLI flag overrides
@@ -87,6 +92,31 @@ Each tool follows this pattern:
 
 All responses are human-readable formatted strings (not JSON) designed for AI assistant consumption. Each tool has a dedicated formatter in `formatters.go` that structures the output consistently.
 
+### ROSA CLI Integration
+
+The HTPasswd identity provider implementation (`setup_htpasswd_identity_provider` tool) integrates directly with ROSA CLI libraries and patterns:
+
+**External Dependencies:**
+- `github.com/openshift-online/ocm-common` v0.0.25 - Password validation and HTPasswd hashing utilities
+
+**ROSA CLI Function Integration (~70% code reuse):**
+- `UsernameValidator()` - Username format validation (no /, :, % characters)
+- `clusterAdminValidator()` - Reserved username check (prevents "cluster-admin")
+- `ValidateIdpName()` - IDP name validation with regex pattern matching
+- `parseHtpasswordFile()` - HTPasswd file parsing for base64 encoded content
+- `ProcessUserInput()` - Handles multiple input formats (users array, single user, htpasswd file)
+
+**Validation Flow:**
+1. IDP name validation using ROSA CLI regex patterns
+2. Username/password validation with ROSA CLI rules
+3. Password hashing with `ocm-common` utilities
+4. OCM API integration following ROSA CLI error handling patterns
+
+**Input Compatibility:**
+- Users array format: `["user1:password1", "user2:password2"]`
+- Single user format: `username` + `password` parameters (backward compatibility)
+- HTPasswd file format: Base64-encoded htpasswd file content
+
 ## Development Notes
 
 - The project uses `github.com/mark3labs/mcp-go` v0.37.0+ as the MCP framework
@@ -94,7 +124,7 @@ All responses are human-readable formatted strings (not JSON) designed for AI as
 - Configuration supports CLI flags, environment variables, and TOML files
 - Uses glog for structured logging throughout the OCM SDK integration
 - OCM client supports configurable client ID (defaults to "cloud-services")
-- Only the `pkg/ocm` package currently has test coverage focusing on authentication logic
+- Test coverage includes `pkg/ocm` (authentication logic) and `pkg/htpasswd` (ROSA CLI validation functions)
 - The server binary is built to `rosa-mcp-server` in the project root
 
 ## Container and OpenShift Deployment
