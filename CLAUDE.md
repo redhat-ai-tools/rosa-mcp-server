@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on AWS using Hosted Control Planes) written in Go. It enables AI assistants to integrate with Red Hat Managed OpenShift services through 4 core tools: `whoami`, `get_clusters`, `get_cluster`, and `create_rosa_hcp_cluster`.
+This is a Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on AWS using Hosted Control Planes) written in Go. It enables AI assistants to integrate with Red Hat Managed OpenShift services through 5 core tools: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, and `get_rosa_hcp_prerequisites_guide`.
 
 ## Build and Development Commands
 

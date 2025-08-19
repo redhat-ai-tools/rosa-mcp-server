@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on
 
 ## Features
 
-- **4 Core Tools**: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`
+- **5 Core Tools**: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, `get_rosa_hcp_prerequisites_guide`
 - **Dual Transport Support**: stdio and Server-Sent Events (SSE)
 - **OCM API Integration**: Direct integration with OpenShift Cluster Manager
 - **Multi-Region Support**: Configurable AWS regions (default: us-east-1)
@@ -185,6 +185,15 @@ Provision a new ROSA HCP cluster with required AWS configuration.
     "region": {"type": "string", "default": "us-east-1"},
     "multi_arch_enabled": {"type": "boolean", "default": false}
   }
+}
+```
+
+### 5. get_rosa_hcp_prerequisites_guide
+Get the complete workflow prompt for ROSA HCP cluster installation prerequisites and setup.
+```json
+{
+  "name": "get_rosa_hcp_prerequisites_guide",
+  "description": "Get the complete workflow prompt for ROSA HCP cluster installation prerequisites and setup. Use this workflow to guide a user through the complete setup process for creating a ROSA HCP cluster."
 }
 ```
 
