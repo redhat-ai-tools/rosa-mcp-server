@@ -4,7 +4,8 @@ A Model Context Protocol (MCP) server for ROSA HCP (Red Hat OpenShift Service on
 
 ## Features
 
-- **5 Core Tools**: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, `get_rosa_hcp_prerequisites_guide`
+- **6 Core Tools**: `whoami`, `get_clusters`, `get_cluster`, `create_rosa_hcp_cluster`, `get_rosa_hcp_prerequisites_guide`, `setup_htpasswd_identity_provider`
+- **ROSA CLI Integration**: HTPasswd identity provider setup using proven ROSA CLI validation and patterns
 - **Dual Transport Support**: stdio and Server-Sent Events (SSE)
 - **OCM API Integration**: Direct integration with OpenShift Cluster Manager
 - **Multi-Region Support**: Configurable AWS regions (default: us-east-1)
@@ -197,6 +198,52 @@ Get the complete workflow prompt for ROSA HCP cluster installation prerequisites
 }
 ```
 
+### 6. setup_htpasswd_identity_provider
+Setup an HTPasswd identity provider for a ROSA HCP cluster with username/password authentication.
+```json
+{
+  "name": "setup_htpasswd_identity_provider",
+  "parameters": {
+    "cluster_id": {
+      "type": "string",
+      "description": "Target cluster identifier",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "description": "Identity provider name",
+      "default": "htpasswd"
+    },
+    "mapping_method": {
+      "type": "string",
+      "description": "User mapping method - options: add, claim, generate, lookup",
+      "default": "claim"
+    },
+    "users": {
+      "type": "array",
+      "description": "List of username:password pairs [\"user1:password1\", \"user2:password2\"]"
+    },
+    "username": {
+      "type": "string",
+      "description": "Single user username (for backward compatibility)"
+    },
+    "password": {
+      "type": "string",
+      "description": "Single user password (for backward compatibility)"
+    },
+    "htpasswd_file_content": {
+      "type": "string",
+      "description": "Base64-encoded htpasswd file content"
+    },
+    "overwrite_existing": {
+      "type": "boolean",
+      "description": "Whether to overwrite if IDP with same name exists",
+      "default": false
+    }
+  }
+}
+```
+
 ## ROSA HCP Prerequisites
 
 Before creating clusters, ensure you have:
@@ -238,9 +285,11 @@ Before creating clusters, ensure you have:
 ├── cmd/rosa-mcp-server/     # Main entry point
 ├── pkg/
 │   ├── config/              # Configuration management
+│   ├── htpasswd/            # HTPasswd validation (ROSA CLI integration)
 │   ├── mcp/                 # MCP server implementation
 │   ├── ocm/                 # OCM API client wrapper
 │   └── version/             # Version information
+├── spec/                    # Implementation specifications
 ├── go.mod                   # Go module definition
 └── README.md               # This file
 ```
