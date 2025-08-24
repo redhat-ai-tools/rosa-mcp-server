@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/golang/glog v1.0.0
+	github.com/golang/glog v1.2.5
 	github.com/mark3labs/mcp-go v0.37.0
 	github.com/openshift-online/ocm-sdk-go v0.1.473
 	github.com/spf13/cobra v1.9.1
