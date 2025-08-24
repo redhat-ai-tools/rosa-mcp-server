@@ -9,7 +9,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.473
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
