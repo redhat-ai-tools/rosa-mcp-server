@@ -1,7 +1,6 @@
 package htpasswd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strings"
@@ -70,73 +69,29 @@ func validateHtUsernameAndPassword(username, password string) error {
 	return nil
 }
 
-// parseHtpasswordFile - copied from rosa/cmd/create/idp/htpasswd.go:281
-func parseHtpasswordFile(usersList *map[string]string, fileContent string) error {
-	lines := strings.Split(fileContent, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// split "user:password" at colon
-		username, password, found := strings.Cut(line, ":")
-		if !found || username == "" || password == "" {
-			return fmt.Errorf("Malformed line, Expected: validUsername:validPassword, Got: %s", line)
-		}
-
-		(*usersList)[username] = password
-	}
-	return nil
-}
-
-// ProcessUserInput - processes MCP tool parameters using ROSA CLI patterns
-func ProcessUserInput(userInput map[string]interface{}) (map[string]string, bool, error) {
+// ProcessUserInput - processes MCP tool parameters using ROSA CLI patterns (simplified to users array only)
+func ProcessUserInput(userInput map[string]interface{}) (map[string]string, error) {
 	userList := make(map[string]string)
-	isHashedPassword := false
 
-	// Option 1: users array (comma-separated list like ROSA CLI)
-	if users, ok := userInput["users"].([]interface{}); ok && len(users) > 0 {
-		for _, user := range users {
-			userStr, ok := user.(string)
-			if !ok {
-				return nil, false, fmt.Errorf("invalid user format, expected string")
-			}
-			username, password, found := strings.Cut(userStr, ":")
-			if !found {
-				return nil, false, fmt.Errorf("users should be provided in format username:password")
-			}
-			userList[username] = password
-		}
-		return userList, false, nil
+	// Only support users array format
+	users, ok := userInput["users"].([]interface{})
+	if !ok || len(users) == 0 {
+		return nil, fmt.Errorf("'users' parameter is required: provide list of username:password pairs")
 	}
 
-	// Option 2: single username/password (ROSA CLI backward compatibility)
-	if username, hasUsername := userInput["username"].(string); hasUsername {
-		if password, hasPassword := userInput["password"].(string); hasPassword {
-			userList[username] = password
-			return userList, false, nil
+	for _, user := range users {
+		userStr, ok := user.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid user format, expected string")
 		}
-		return nil, false, fmt.Errorf("password required when username is provided")
+		username, password, found := strings.Cut(userStr, ":")
+		if !found || username == "" || password == "" {
+			return nil, fmt.Errorf("users should be provided in format username:password")
+		}
+		userList[username] = password
 	}
-
-	// Option 3: htpasswd file content
-	if fileContent, ok := userInput["htpasswd_file_content"].(string); ok && fileContent != "" {
-		// Decode base64 content
-		decoded, err := base64.StdEncoding.DecodeString(fileContent)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to decode htpasswd file content: %w", err)
-		}
-
-		// Use ROSA CLI parsing function
-		if err := parseHtpasswordFile(&userList, string(decoded)); err != nil {
-			return nil, false, fmt.Errorf("failed to parse htpasswd file: %w", err)
-		}
-		isHashedPassword = true // htpasswd files contain pre-hashed passwords
-		return userList, isHashedPassword, nil
-	}
-
-	return nil, false, fmt.Errorf("no user input provided: specify 'users', 'username'+'password', or 'htpasswd_file_content'")
+	
+	return userList, nil
 }
 
 // ValidateUserCredentials - validates username and password using ROSA CLI validation

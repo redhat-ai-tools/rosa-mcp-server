@@ -1,7 +1,6 @@
 package htpasswd
 
 import (
-	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,77 +119,10 @@ func TestValidateUserCredentials(t *testing.T) {
 	}
 }
 
-func TestParseHtpasswordFile(t *testing.T) {
-	testCases := []struct {
-		content     string
-		expected    map[string]string
-		expectError bool
-		description string
-	}{
-		{
-			"user1:password1\nuser2:password2",
-			map[string]string{"user1": "password1", "user2": "password2"},
-			false,
-			"valid htpasswd content",
-		},
-		{
-			"user1:password1\n\nuser2:password2\n",
-			map[string]string{"user1": "password1", "user2": "password2"},
-			false,
-			"htpasswd content with empty lines",
-		},
-		{
-			"user1:$apr1$hRY7OJWH$km1EYH.UIRjp6CzfZQz/g1",
-			map[string]string{"user1": "$apr1$hRY7OJWH$km1EYH.UIRjp6CzfZQz/g1"},
-			false,
-			"htpasswd with hashed password",
-		},
-		{
-			"invalid_line_without_colon",
-			nil,
-			true,
-			"malformed line without colon",
-		},
-		{
-			"user1:\nuser2:password2",
-			nil,
-			true,
-			"empty password",
-		},
-		{
-			":password1",
-			nil,
-			true,
-			"empty username",
-		},
-		{
-			"",
-			map[string]string{},
-			false,
-			"empty content",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.description, func(t *testing.T) {
-			usersList := make(map[string]string)
-			err := parseHtpasswordFile(&usersList, tc.content)
-			
-			if tc.expectError {
-				assert.Error(t, err, "Expected error for content: %s", tc.content)
-			} else {
-				assert.NoError(t, err, "Expected no error for content: %s", tc.content)
-				assert.Equal(t, tc.expected, usersList, "Expected parsed users to match")
-			}
-		})
-	}
-}
-
 func TestProcessUserInput(t *testing.T) {
 	testCases := []struct {
 		input           map[string]interface{}
 		expectedUsers   map[string]string
-		expectedHashed  bool
 		expectError     bool
 		description     string
 	}{
@@ -200,75 +132,57 @@ func TestProcessUserInput(t *testing.T) {
 			},
 			map[string]string{"user1": "password1", "user2": "password2"},
 			false,
-			false,
 			"users array input",
-		},
-		{
-			map[string]interface{}{
-				"username": "testuser",
-				"password": "testpassword",
-			},
-			map[string]string{"testuser": "testpassword"},
-			false,
-			false,
-			"single username/password input",
-		},
-		{
-			map[string]interface{}{
-				"htpasswd_file_content": base64.StdEncoding.EncodeToString([]byte("user1:$apr1$hash1\nuser2:$apr1$hash2")),
-			},
-			map[string]string{"user1": "$apr1$hash1", "user2": "$apr1$hash2"},
-			true,
-			false,
-			"htpasswd file content input",
-		},
-		{
-			map[string]interface{}{
-				"username": "testuser",
-				// missing password
-			},
-			nil,
-			false,
-			true,
-			"username without password",
 		},
 		{
 			map[string]interface{}{
 				"users": []interface{}{"invalid_user_without_colon"},
 			},
 			nil,
-			false,
 			true,
 			"invalid users array format",
 		},
 		{
-			map[string]interface{}{
-				"htpasswd_file_content": "invalid_base64",
-			},
-			nil,
-			false,
-			true,
-			"invalid base64 htpasswd content",
-		},
-		{
 			map[string]interface{}{},
 			nil,
-			false,
 			true,
-			"no user input provided",
+			"no users parameter provided",
+		},
+		{
+			map[string]interface{}{
+				"users": []interface{}{},
+			},
+			nil,
+			true,
+			"empty users array",
+		},
+		{
+			map[string]interface{}{
+				"users": []interface{}{123},
+			},
+			nil,
+			true,
+			"invalid user type in array",
+		},
+		{
+			map[string]interface{}{
+				"users": []interface{}{"user1:password1", "user2:"},
+			},
+			nil,
+			true,
+			"user with empty password",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			users, isHashed, err := ProcessUserInput(tc.input)
+			users, err := ProcessUserInput(tc.input)
 			
 			if tc.expectError {
 				assert.Error(t, err, "Expected error for input: %v", tc.input)
 			} else {
 				assert.NoError(t, err, "Expected no error for input: %v", tc.input)
 				assert.Equal(t, tc.expectedUsers, users, "Expected users to match")
-				assert.Equal(t, tc.expectedHashed, isHashed, "Expected hashed flag to match")
 			}
 		})
 	}

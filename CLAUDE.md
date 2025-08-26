@@ -103,19 +103,17 @@ The HTPasswd identity provider implementation (`setup_htpasswd_identity_provider
 - `UsernameValidator()` - Username format validation (no /, :, % characters)
 - `clusterAdminValidator()` - Reserved username check (prevents "cluster-admin")
 - `ValidateIdpName()` - IDP name validation with regex pattern matching
-- `parseHtpasswordFile()` - HTPasswd file parsing for base64 encoded content
-- `ProcessUserInput()` - Handles multiple input formats (users array, single user, htpasswd file)
+- `ProcessUserInput()` - Simplified to handle only users array format
 
 **Validation Flow:**
 1. IDP name validation using ROSA CLI regex patterns
 2. Username/password validation with ROSA CLI rules
-3. Password hashing with `ocm-common` utilities
+3. Password hashing with `ocm-common` utilities (always hash passwords)
 4. OCM API integration following ROSA CLI error handling patterns
 
-**Input Compatibility:**
-- Users array format: `["user1:password1", "user2:password2"]`
-- Single user format: `username` + `password` parameters (backward compatibility)
-- HTPasswd file format: Base64-encoded htpasswd file content
+**Input Format (Simplified):**
+- Users array format: `["user1:password1", "user2:password2"]` (required parameter)
+- Removed backward compatibility for single user and htpasswd file formats for better consistency
 
 ## Development Notes
 

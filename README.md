@@ -221,19 +221,8 @@ Setup an HTPasswd identity provider for a ROSA HCP cluster with username/passwor
     },
     "users": {
       "type": "array",
-      "description": "List of username:password pairs [\"user1:password1\", \"user2:password2\"]"
-    },
-    "username": {
-      "type": "string",
-      "description": "Single user username (for backward compatibility)"
-    },
-    "password": {
-      "type": "string",
-      "description": "Single user password (for backward compatibility)"
-    },
-    "htpasswd_file_content": {
-      "type": "string",
-      "description": "Base64-encoded htpasswd file content"
+      "description": "List of username:password pairs [\"user1:password1\", \"user2:password2\"]",
+      "required": true
     },
     "overwrite_existing": {
       "type": "boolean",

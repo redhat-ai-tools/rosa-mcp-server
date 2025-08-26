@@ -592,3 +592,97 @@ require (
 - HTPasswd user list construction patterns
 
 **Code Reuse Percentage**: ~70% (high reuse of ROSA CLI validation and OCM patterns)
+
+---
+
+## UPDATED: Simplified Input Handling (Single Option)
+
+### Change Summary
+The original implementation supported three input methods for flexibility. Based on usage patterns, this has been simplified to support only the users array format for better consistency and maintainability.
+
+### Removed Input Options
+- ❌ **Single username/password**: `username` + `password` parameters
+- ❌ **HTPasswd file content**: `htpasswd_file_content` base64-encoded parameter
+
+### Retained Input Option
+- ✅ **Users array**: `users` parameter with format `["user1:password1", "user2:password2"]`
+
+### Implementation Changes
+
+#### 1. MCP Tool Parameters (Simplified)
+```go
+{Tool: mcp.NewTool("setup_htpasswd_identity_provider",
+    mcp.WithDescription(`Setup an HTPasswd identity provider for a ROSA HCP cluster.
+
+HTPasswd is a common identity provider for development and testing environments. This tool allows creating users with username/password authentication.`),
+    mcp.WithString("cluster_id", mcp.Description("Target cluster identifier"), mcp.Required()),
+    mcp.WithString("name", mcp.Description("Identity provider name"), mcp.DefaultString("htpasswd")),
+    mcp.WithString("mapping_method", mcp.Description("User mapping method - options: add, claim, generate, lookup"), mcp.DefaultString("claim")),
+    mcp.WithArray("users", mcp.Description("List of username:password pairs [\"user1:password1\", \"user2:password2\"]"), mcp.Required()),
+    mcp.WithBoolean("overwrite_existing", mcp.Description("Whether to overwrite if IDP with same name exists"), mcp.DefaultBool(false)),
+), Handler: s.handleSetupHTPasswdIdentityProvider},
+```
+
+#### 2. Validation Logic (Simplified)
+```go
+// ProcessUserInput - simplified to support only users array
+func ProcessUserInput(userInput map[string]interface{}) (map[string]string, error) {
+    userList := make(map[string]string)
+
+    users, ok := userInput["users"].([]interface{})
+    if !ok || len(users) == 0 {
+        return nil, fmt.Errorf("'users' parameter is required: provide list of username:password pairs")
+    }
+
+    for _, user := range users {
+        userStr, ok := user.(string)
+        if !ok {
+            return nil, fmt.Errorf("invalid user format, expected string")
+        }
+        username, password, found := strings.Cut(userStr, ":")
+        if !found {
+            return nil, fmt.Errorf("users should be provided in format username:password")
+        }
+        userList[username] = password
+    }
+    
+    return userList, nil
+}
+```
+
+#### 3. Removed Functions
+- `parseHtpasswordFile()` - No longer needed for htpasswd file parsing
+- Simplified `ProcessUserInput()` signature (no `isHashedPassword` return)
+
+#### 4. Benefits of Simplification
+- **Consistency**: Single input method aligns with ROSA CLI patterns
+- **Maintainability**: Fewer code paths to test and maintain
+- **Clarity**: Clear expectation of input format
+- **Security**: Always hash passwords (no pre-hashed password handling)
+
+#### 5. Migration Guide
+For existing users of the removed options:
+
+**Single user migration:**
+```bash
+# Old format (removed):
+--username=myuser --password=mypass
+
+# New format:
+--users='["myuser:mypass"]'
+```
+
+**HTPasswd file migration:**
+```bash
+# Old format (removed):
+--htpasswd_file_content="base64encodedcontent"
+
+# New format (parse htpasswd file manually):
+--users='["user1:pass1", "user2:pass2"]'
+```
+
+### Code Reuse Impact
+- **ROSA CLI Integration**: Still maintains ~70% code reuse
+- **Validation Functions**: All ROSA CLI validation functions preserved
+- **OCM Integration**: Simplified but still follows ROSA CLI patterns
+- **Error Handling**: Maintains ROSA CLI compatible error messages

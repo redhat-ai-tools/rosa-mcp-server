@@ -69,13 +69,13 @@ func (c *Client) SetupHTPasswdIdentityProvider(
 		}
 	}
 
-	// Step 4: Process user input using ROSA CLI patterns
-	userList, isHashedPassword, err := htpasswd.ProcessUserInput(userInput)
+	// Step 4: Process user input using simplified validation
+	userList, err := htpasswd.ProcessUserInput(userInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process user input: %w", err)
 	}
 
-	// Step 5: Build HTPasswd user list using ROSA CLI pattern
+	// Step 5: Build HTPasswd user list (always hash passwords)
 	htpasswdUsers := []*cmv1.HTPasswdUserBuilder{}
 	for username, password := range userList {
 		// Validate each user using ROSA CLI validation
@@ -83,17 +83,15 @@ func (c *Client) SetupHTPasswdIdentityProvider(
 			return nil, fmt.Errorf("invalid user credentials for '%s': %w", username, err)
 		}
 
-		userBuilder := cmv1.NewHTPasswdUser().Username(username)
-		if isHashedPassword {
-			userBuilder.HashedPassword(password)
-		} else {
-			// Use ROSA CLI password hashing
-			hashedPwd, err := idputils.GenerateHTPasswdCompatibleHash(password)
-			if err != nil {
-				return nil, fmt.Errorf("failed to hash password for user '%s': %w", username, err)
-			}
-			userBuilder.HashedPassword(hashedPwd)
+		// Always hash passwords using ROSA CLI method
+		hashedPwd, err := idputils.GenerateHTPasswdCompatibleHash(password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password for user '%s': %w", username, err)
 		}
+		
+		userBuilder := cmv1.NewHTPasswdUser().
+			Username(username).
+			HashedPassword(hashedPwd)
 		htpasswdUsers = append(htpasswdUsers, userBuilder)
 	}
 
