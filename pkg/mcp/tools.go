@@ -65,6 +65,20 @@ Use this workflow to guide a user through the complete setup process for creatin
 			mcp.WithDestructiveHintAnnotation(false),
 			mcp.WithOpenWorldHintAnnotation(true),
 		), Handler: s.handleGetROSAHCPPrerequisitesGuide},
+
+		{Tool: mcp.NewTool("setup_htpasswd_identity_provider",
+			mcp.WithDescription(`Setup an HTPasswd identity provider for a ROSA HCP cluster.
+
+HTPasswd is a common identity provider for development and testing environments. This tool allows creating users with username/password authentication.`),
+			mcp.WithString("cluster_id", mcp.Description("Target cluster identifier"), mcp.Required()),
+			mcp.WithString("name", mcp.Description("Identity provider name"), mcp.DefaultString("htpasswd")),
+			mcp.WithString("mapping_method", mcp.Description("User mapping method - options: add, claim, generate, lookup"), mcp.DefaultString("claim")),
+			mcp.WithArray("users", mcp.Description("List of username:password pairs [\"user1:password1\", \"user2:password2\"]"), mcp.Required()),
+			mcp.WithBoolean("overwrite_existing", mcp.Description("Whether to overwrite if IDP with same name exists"), mcp.DefaultBool(false)),
+			mcp.WithReadOnlyHintAnnotation(false),
+			mcp.WithDestructiveHintAnnotation(false),
+			mcp.WithOpenWorldHintAnnotation(true),
+		), Handler: s.handleSetupHTPasswdIdentityProvider},
 	}
 }
 
@@ -285,6 +299,63 @@ func (s *Server) handleGetROSAHCPPrerequisitesGuide(ctx context.Context, ctr mcp
 
 	// Return the embedded prerequisites guide content directly
 	return NewTextResult(prereqsGuide, nil), nil
+}
+
+// handleSetupHTPasswdIdentityProvider handles the setup_htpasswd_identity_provider tool
+func (s *Server) handleSetupHTPasswdIdentityProvider(ctx context.Context, ctr mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	params := ctr.GetArguments()
+	s.logToolCall("setup_htpasswd_identity_provider", params)
+
+	// Extract required parameters
+	clusterID, ok := params["cluster_id"].(string)
+	if !ok || clusterID == "" {
+		return NewTextResult("", errors.New("cluster_id parameter is required")), nil
+	}
+
+	// Extract optional parameters with defaults
+	name := "htpasswd"
+	if n, ok := params["name"].(string); ok && n != "" {
+		name = n
+	}
+
+	mappingMethod := "claim"
+	if mm, ok := params["mapping_method"].(string); ok && mm != "" {
+		mappingMethod = mm
+	}
+
+	overwriteExisting := false
+	if ow, ok := params["overwrite_existing"].(bool); ok {
+		overwriteExisting = ow
+	}
+
+	// Get authenticated OCM client
+	client, err := s.getAuthenticatedOCMClient(ctx)
+	if err != nil {
+		return NewTextResult("", errors.New("authentication failed: "+err.Error())), nil
+	}
+	defer client.Close()
+
+	// Setup HTPasswd identity provider using OCM client
+	idp, err := client.SetupHTPasswdIdentityProvider(clusterID, name, mappingMethod, params, overwriteExisting)
+	if errorResult := handleOCMError(err, "failed to setup HTPasswd identity provider"); errorResult != nil {
+		return errorResult, nil
+	}
+
+	// Get cluster details for response formatting
+	cluster, err := client.GetCluster(clusterID)
+	if errorResult := handleOCMError(err, "failed to get cluster details"); errorResult != nil {
+		return errorResult, nil
+	}
+
+	// Count the number of users created
+	userCount := 0
+	if idp.Htpasswd() != nil && idp.Htpasswd().Users() != nil {
+		userCount = len(idp.Htpasswd().Users().Slice())
+	}
+
+	// Format response using MCP layer formatter
+	formattedResponse := FormatHTPasswdIdentityProviderResult(idp, cluster, userCount)
+	return NewTextResult(formattedResponse, nil), nil
 }
 
 // NewTextResult creates a new MCP CallToolResult

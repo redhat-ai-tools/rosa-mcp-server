@@ -190,3 +190,46 @@ func formatClusterCreateResponse(cluster *clustersmgmt.Cluster) string {
 	
 	return strings.Join(parts, "\n")
 }
+
+// FormatHTPasswdIdentityProviderResult - Enhanced with ROSA CLI patterns
+func FormatHTPasswdIdentityProviderResult(
+	idp *clustersmgmt.IdentityProvider,
+	cluster *clustersmgmt.Cluster,
+	userCount int,
+) string {
+	var output strings.Builder
+
+	output.WriteString("HTPasswd Identity Provider Setup Complete\n\n")
+
+	// Provider Details (similar to ROSA CLI output format)
+	output.WriteString("Provider Details:\n")
+	output.WriteString(fmt.Sprintf("- Name: %s\n", idp.Name()))
+	output.WriteString("- Type: HTPasswd\n")
+	output.WriteString(fmt.Sprintf("- Mapping Method: %s\n", idp.MappingMethod()))
+	output.WriteString(fmt.Sprintf("- Users Created: %d\n", userCount))
+	output.WriteString(fmt.Sprintf("- Cluster: %s (%s)\n", cluster.Name(), cluster.ID()))
+	output.WriteString(fmt.Sprintf("- Status: %s\n", idp.Type()))
+
+	// Next Steps (adapted from ROSA CLI messaging)
+	output.WriteString("\nNext Steps:\n")
+	output.WriteString("1. Users can now log in using their credentials\n")
+
+	// Add console URL if available (ROSA CLI pattern)
+	if cluster.Console() != nil && cluster.Console().URL() != "" {
+		output.WriteString(fmt.Sprintf("2. Access cluster console at: %s\n", cluster.Console().URL()))
+		output.WriteString(fmt.Sprintf("3. Click on '%s' to log in\n", idp.Name()))
+		output.WriteString("4. Use 'oc login' with htpasswd credentials\n")
+		output.WriteString("5. Consider setting up RBAC for user permissions\n")
+	} else {
+		output.WriteString("2. Use 'oc login' with htpasswd credentials\n")
+		output.WriteString("3. Console URL will be available when cluster networking is ready\n")
+		output.WriteString("4. Consider setting up RBAC for user permissions\n")
+	}
+
+	// ROSA CLI compatibility note
+	output.WriteString(fmt.Sprintf("\nROSA CLI Equivalent:\n"))
+	output.WriteString(fmt.Sprintf("rosa create idp htpasswd --cluster=%s --name=%s --mapping-method=%s\n",
+		cluster.ID(), idp.Name(), idp.MappingMethod()))
+
+	return output.String()
+}
