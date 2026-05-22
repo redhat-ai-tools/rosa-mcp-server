@@ -1,6 +1,6 @@
 module github.com/tiwillia/rosa-mcp-go
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/BurntSushi/toml v1.5.0
@@ -44,11 +44,11 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/protobuf v1.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
