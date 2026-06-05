@@ -3,7 +3,7 @@ module github.com/tiwillia/rosa-mcp-go
 go 1.24.4
 
 require (
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/golang/glog v1.2.0
 	github.com/mark3labs/mcp-go v0.37.0
 	github.com/openshift-online/ocm-common v0.0.25
